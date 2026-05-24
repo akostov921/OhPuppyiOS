@@ -1,0 +1,30 @@
+{
+  "/Users/apostolkostov/Desktop/OhPuppyiOS/OhPuppy/App/OhPuppyApp.swift" : {
+    "const-values" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/OhPuppyApp.swiftconstvalues",
+    "dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/OhPuppyApp.d",
+    "diagnostics" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/OhPuppyApp.dia",
+    "object" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/OhPuppyApp.o",
+    "swift-dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/OhPuppyApp.swiftdeps"
+  },
+  "/Users/apostolkostov/Desktop/OhPuppyiOS/OhPuppy/Core/Models/Models.swift" : {
+    "const-values" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/Models.swiftconstvalues",
+    "dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/Models.d",
+    "diagnostics" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/Models.dia",
+    "object" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/Models.o",
+    "swift-dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/Models.swiftdeps"
+  },
+  "/Users/apostolkostov/Desktop/OhPuppyiOS/OhPuppy/Core/Theme/OPTheme.swift" : {
+    "const-values" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/OPTheme.swiftconstvalues",
+    "dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/OPTheme.d",
+    "diagnostics" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/OPTheme.dia",
+    "object" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/OPTheme.o",
+    "swift-dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/OPTheme.swiftdeps"
+  },
+  "/Users/apostolkostov/Desktop/OhPuppyiOS/OhPuppy/Features/Dogs/MilestonesView.swift" : {
+    "const-values" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/MilestonesView.swiftconstvalues",
+    "dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/MilestonesView.d",
+    "diagnostics" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/MilestonesView.dia",
+    "object" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/MilestonesView.o",
+    "swift-dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/MilestonesView.swiftdeps"
+  }
+}

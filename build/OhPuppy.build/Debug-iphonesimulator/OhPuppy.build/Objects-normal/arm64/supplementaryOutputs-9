@@ -1,0 +1,23 @@
+{
+  "/Users/apostolkostov/Desktop/OhPuppyiOS/OhPuppy/Features/Dogs/TimelineView.swift" : {
+    "const-values" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/TimelineView.swiftconstvalues",
+    "dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/TimelineView.d",
+    "diagnostics" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/TimelineView.dia",
+    "object" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/TimelineView.o",
+    "swift-dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/TimelineView.swiftdeps"
+  },
+  "/Users/apostolkostov/Desktop/OhPuppyiOS/OhPuppy/Features/Health/Vaccines/VaccineListView.swift" : {
+    "const-values" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/VaccineListView.swiftconstvalues",
+    "dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/VaccineListView.d",
+    "diagnostics" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/VaccineListView.dia",
+    "object" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/VaccineListView.o",
+    "swift-dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/VaccineListView.swiftdeps"
+  },
+  "/Users/apostolkostov/Desktop/OhPuppyiOS/OhPuppy/Features/Social/StoriesView.swift" : {
+    "const-values" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/StoriesView.swiftconstvalues",
+    "dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/StoriesView.d",
+    "diagnostics" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/StoriesView.dia",
+    "object" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/StoriesView.o",
+    "swift-dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/StoriesView.swiftdeps"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "/Users/apostolkostov/Desktop/OhPuppyiOS/OhPuppy/Features/Dogs/DigitalPassportView.swift" : {
+    "const-values" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DigitalPassportView.swiftconstvalues",
+    "dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DigitalPassportView.d",
+    "diagnostics" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DigitalPassportView.dia",
+    "object" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DigitalPassportView.o",
+    "swift-dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DigitalPassportView.swiftdeps"
+  },
+  "/Users/apostolkostov/Desktop/OhPuppyiOS/OhPuppy/Features/Dogs/DogListView.swift" : {
+    "const-values" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DogListView.swiftconstvalues",
+    "dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DogListView.d",
+    "diagnostics" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DogListView.dia",
+    "object" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DogListView.o",
+    "swift-dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DogListView.swiftdeps"
+  },
+  "/Users/apostolkostov/Desktop/OhPuppyiOS/OhPuppy/Features/Dogs/DogProfileView.swift" : {
+    "const-values" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DogProfileView.swiftconstvalues",
+    "dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DogProfileView.d",
+    "diagnostics" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DogProfileView.dia",
+    "object" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DogProfileView.o",
+    "swift-dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/DogProfileView.swiftdeps"
+  },
+  "/Users/apostolkostov/Desktop/OhPuppyiOS/OhPuppy/Features/Social/ChatView.swift" : {
+    "const-values" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/ChatView.swiftconstvalues",
+    "dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/ChatView.d",
+    "diagnostics" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/ChatView.dia",
+    "object" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/ChatView.o",
+    "swift-dependencies" : "/Users/apostolkostov/Desktop/OhPuppyiOS/build/OhPuppy.build/Debug-iphonesimulator/OhPuppy.build/Objects-normal/arm64/ChatView.swiftdeps"
+  }
+}
