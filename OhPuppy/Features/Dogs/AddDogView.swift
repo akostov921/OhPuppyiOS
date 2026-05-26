@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct AddDogView: View {
     @Environment(AppStore.self) private var store
@@ -10,12 +11,14 @@ struct AddDogView: View {
     @State private var sex: Dog.Sex = .male
     @State private var neutered = false
     @State private var microchip = ""
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var photoData: Data?
+    @State private var photoImage: Image?
 
     var body: some View {
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Title
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Запознай ни\nс кучето си")
                             .font(.system(size: 28, weight: .bold))
@@ -25,36 +28,47 @@ struct AddDogView: View {
                             .foregroundStyle(OPTheme.textSecondary)
                     }
 
-                    // Photo placeholder
                     HStack {
                         Spacer()
-                        ZStack(alignment: .bottomTrailing) {
-                            Circle()
-                                .fill(OPTheme.surfaceSunken)
-                                .frame(width: 100, height: 100)
-                                .overlay {
-                                    Image(systemName: "pawprint.fill")
-                                        .font(.system(size: 36))
-                                        .foregroundStyle(OPTheme.mint.opacity(0.6))
+                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                            ZStack(alignment: .bottomTrailing) {
+                                if let photoImage {
+                                    photoImage
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(Circle())
+                                        .overlay(
+                                            Circle().stroke(OPTheme.avatarRingGradient, lineWidth: 3)
+                                        )
+                                } else {
+                                    Circle()
+                                        .fill(OPTheme.surfaceSunken)
+                                        .frame(width: 100, height: 100)
+                                        .overlay {
+                                            Image(systemName: "pawprint.fill")
+                                                .font(.system(size: 36))
+                                                .foregroundStyle(OPTheme.mint.opacity(0.6))
+                                        }
+                                        .overlay(
+                                            Circle().stroke(OPTheme.avatarRingGradient, lineWidth: 3)
+                                        )
                                 }
-                                .overlay(
-                                    Circle().stroke(OPTheme.avatarRingGradient, lineWidth: 3)
-                                )
 
-                            Circle()
-                                .fill(OPTheme.primaryGradient)
-                                .frame(width: 34, height: 34)
-                                .overlay {
-                                    Image(systemName: "camera.fill")
-                                        .font(.system(size: 14))
-                                        .foregroundStyle(.white)
-                                }
-                                .overlay(Circle().stroke(OPTheme.bg, lineWidth: 3))
+                                Circle()
+                                    .fill(OPTheme.primaryGradient)
+                                    .frame(width: 34, height: 34)
+                                    .overlay {
+                                        Image(systemName: "camera.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(.white)
+                                    }
+                                    .overlay(Circle().stroke(OPTheme.bg, lineWidth: 3))
+                            }
                         }
                         Spacer()
                     }
 
-                    // Form fields
                     formField("Име", text: $name, placeholder: "Рекс")
                     formField("Порода", text: $breed, placeholder: "Лабрадор ретривър")
 
@@ -70,7 +84,6 @@ struct AddDogView: View {
 
                     formField("Тегло (кг)", text: $weight, placeholder: "14.2", keyboard: .decimalPad)
 
-                    // Sex picker
                     VStack(alignment: .leading, spacing: 8) {
                         Text("ПОЛ")
                             .font(.system(size: 12, weight: .semibold))
@@ -95,7 +108,6 @@ struct AddDogView: View {
                         }
                     }
 
-                    // Neutered toggle
                     Toggle(isOn: $neutered) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Кастриран").font(.system(size: 15, weight: .medium)).foregroundStyle(OPTheme.text)
@@ -145,6 +157,16 @@ struct AddDogView: View {
                         .tracking(0.8)
                 }
             }
+            .onChange(of: selectedPhoto) { _, newValue in
+                Task {
+                    if let data = try? await newValue?.loadTransferable(type: Data.self) {
+                        photoData = data
+                        if let uiImage = UIImage(data: data) {
+                            photoImage = Image(uiImage: uiImage)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -165,8 +187,15 @@ struct AddDogView: View {
 
     private func saveDog() {
         let w = Double(weight) ?? 0
+        let dogId = UUID().uuidString
+
+        var avatarURL: URL?
+        if let data = photoData {
+            avatarURL = PhotoStorage.save(imageData: data, for: dogId)
+        }
+
         let dog = Dog(
-            id: store.newId(),
+            id: dogId,
             name: name,
             breed: breed.isEmpty ? "Смесена" : breed,
             birthDate: birthDate,
@@ -174,6 +203,7 @@ struct AddDogView: View {
             neutered: neutered,
             weight: w,
             microchip: microchip.isEmpty ? nil : microchip,
+            avatarURL: avatarURL,
             ownerId: "1"
         )
         withAnimation(OPTheme.springAnimation) {

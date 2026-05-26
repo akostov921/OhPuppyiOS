@@ -259,8 +259,8 @@ struct HomeView: View {
                 storyStrip
                     .padding(.bottom, 20)
 
-                if let dog = store.dogs.first, let vaccine = store.nextDueVaccine(dogId: dog.id) {
-                    heroCard(dog: dog, vaccine: vaccine)
+                if let dog = store.dogs.first {
+                    upcomingEventsSlider(dog: dog)
                         .padding(.bottom, 20)
                 }
 
@@ -362,7 +362,7 @@ struct HomeView: View {
                     .foregroundColor(OPTheme.primary))
                     .foregroundStyle(OPTheme.text)
 
-                Text("Хубав ден за разходка с Рекс")
+                Text("Хубав ден за разходка с \(store.dogs.first?.name ?? "кучето")")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(OPTheme.textSecondary)
 
@@ -453,24 +453,132 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Hero Card
+    // MARK: - Upcoming Events Slider
 
-    private func heroCard(dog: Dog, vaccine: Vaccine) -> some View {
+    private struct UpcomingItem: Identifiable {
+        let id: String
+        let icon: String
+        let label: String
+        let title: String
+        let badge: String
+        let gradient: LinearGradient
+        let dogAvatarURL: URL?
+    }
+
+    private func upcomingItems(for dog: Dog) -> [UpcomingItem] {
+        var items: [UpcomingItem] = []
+
+        for v in store.upcomingVaccines(dogId: dog.id).prefix(3) {
+            guard let due = v.nextDueDate else { continue }
+            items.append(UpcomingItem(
+                id: "v_\(v.id)",
+                icon: "cross.vial.fill",
+                label: "СЛЕДВАЩА ВАКСИНА",
+                title: "\(v.type.label) за \(dog.name)",
+                badge: "след \(due.daysFromNow) дни",
+                gradient: OPTheme.primaryGradient,
+                dogAvatarURL: dog.avatarURL
+            ))
+        }
+
+        let recentVisits = store.vetVisitsFor(dogId: dog.id).prefix(2)
+        for vv in recentVisits {
+            let daysAgo = Calendar.current.dateComponents([.day], from: vv.date, to: Date()).day ?? 0
+            if daysAgo <= 30 {
+                items.append(UpcomingItem(
+                    id: "vv_\(vv.id)",
+                    icon: "stethoscope",
+                    label: "ВЕТЕРИНАРЕН ПРЕГЛЕД",
+                    title: vv.reason,
+                    badge: vv.date.shortBG,
+                    gradient: OPTheme.accentGradient,
+                    dogAvatarURL: dog.avatarURL
+                ))
+            }
+        }
+
+        for med in store.medicationsFor(dogId: dog.id).filter(\.isActive).prefix(2) {
+            items.append(UpcomingItem(
+                id: "med_\(med.id)",
+                icon: "pills.fill",
+                label: "АКТИВНО ЛЕКАРСТВО",
+                title: "\(med.name) — \(med.dose)",
+                badge: med.frequency.label,
+                gradient: OPTheme.mintGradient,
+                dogAvatarURL: dog.avatarURL
+            ))
+        }
+
+        let groomLogs = store.groomingFor(dogId: dog.id)
+        if let lastGroom = groomLogs.first {
+            let daysSince = Calendar.current.dateComponents([.day], from: lastGroom.date, to: Date()).day ?? 0
+            if daysSince <= 30 {
+                items.append(UpcomingItem(
+                    id: "g_\(lastGroom.id)",
+                    icon: "scissors",
+                    label: "ПОСЛЕДЕН ГРИМИНГ",
+                    title: "\(lastGroom.type.label) — \(dog.name)",
+                    badge: "преди \(daysSince) дни",
+                    gradient: LinearGradient(colors: [Color(hex: "457B9D"), Color(hex: "1D3557")], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    dogAvatarURL: dog.avatarURL
+                ))
+            }
+        }
+
+        return items.isEmpty ? [UpcomingItem(
+            id: "empty",
+            icon: "checkmark.circle.fill",
+            label: "ВСИЧКО Е НАРЕД",
+            title: "\(dog.name) е в отлична форма!",
+            badge: "Здравен скор: \(store.healthScore(for: dog.id))",
+            gradient: OPTheme.mintGradient,
+            dogAvatarURL: dog.avatarURL
+        )] : items
+    }
+
+    @State private var currentSliderPage = 0
+
+    private func upcomingEventsSlider(dog: Dog) -> some View {
+        let items = upcomingItems(for: dog)
+        return VStack(spacing: 8) {
+            TabView(selection: $currentSliderPage) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    eventSlideCard(item: item, dog: dog)
+                        .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(height: 260)
+
+            if items.count > 1 {
+                HStack(spacing: 6) {
+                    ForEach(0..<items.count, id: \.self) { i in
+                        Circle()
+                            .fill(i == currentSliderPage ? OPTheme.primary : OPTheme.textTertiary.opacity(0.4))
+                            .frame(width: i == currentSliderPage ? 8 : 6, height: i == currentSliderPage ? 8 : 6)
+                            .animation(OPTheme.quickSpring, value: currentSliderPage)
+                    }
+                }
+            }
+        }
+    }
+
+    private func eventSlideCard(item: UpcomingItem, dog: Dog) -> some View {
         NavigationLink(destination: DogProfileView(dog: dog)) {
             VStack(spacing: 0) {
                 ZStack(alignment: .bottomLeading) {
-                    AsyncImage(url: dog.avatarURL) { phase in
+                    AsyncImage(url: item.dogAvatarURL) { phase in
                         if let image = phase.image {
                             image.resizable().scaledToFill()
                         } else {
                             Rectangle().fill(OPTheme.surfaceSunken)
                         }
                     }
-                    .frame(height: 200)
+                    .frame(height: 180)
                     .clipped()
                     .overlay {
                         LinearGradient(
-                            colors: [OPTheme.primary.opacity(0.7), OPTheme.primary.opacity(0.3), .clear],
+                            colors: [OPTheme.primary.opacity(0.8), OPTheme.primary.opacity(0.3), .clear],
                             startPoint: .bottom,
                             endPoint: .top
                         )
@@ -478,41 +586,37 @@ struct HomeView: View {
 
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
-                            Image(systemName: "cross.vial.fill")
+                            Image(systemName: item.icon)
                                 .font(.system(size: 12))
-                            Text("СЛЕДВАЩА ВАКСИНА")
+                            Text(item.label)
                                 .font(.system(size: 10, weight: .heavy))
                                 .tracking(0.8)
                         }
                         .foregroundStyle(.white.opacity(0.85))
-                        .shadow(color: .black.opacity(heroBadgeShadowPulse ? 0.3 : 0.1), radius: heroBadgeShadowPulse ? 6 : 2, y: 2)
 
-                        Text("\(vaccine.type.label) за \(dog.name)")
-                            .font(.system(size: 22, weight: .bold))
+                        Text(item.title)
+                            .font(.system(size: 20, weight: .bold))
                             .foregroundStyle(.white)
+                            .lineLimit(2)
                     }
                     .padding(16)
 
-                    // Date badge
-                    if let due = vaccine.nextDueDate {
-                        VStack {
-                            HStack {
-                                Spacer()
-                                Text("след \(due.daysFromNow) дни")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(OPTheme.primary)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(.white, in: Capsule())
-                                    .shadow(color: OPTheme.primary.opacity(heroBadgeShadowPulse ? 0.25 : 0.08), radius: heroBadgeShadowPulse ? 8 : 3, y: heroBadgeShadowPulse ? 3 : 1)
-                            }
+                    VStack {
+                        HStack {
                             Spacer()
+                            Text(item.badge)
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(OPTheme.primary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(.white, in: Capsule())
+                                .shadow(color: OPTheme.primary.opacity(0.15), radius: 4, y: 2)
                         }
-                        .padding(12)
+                        Spacer()
                     }
+                    .padding(12)
                 }
 
-                // Action area
                 HStack(spacing: 10) {
                     Button {
                         showBookConfirmation = true
@@ -526,7 +630,7 @@ struct HomeView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(OPTheme.primaryGradient, in: Capsule())
+                        .background(item.gradient, in: Capsule())
                     }
 
                     Button {
@@ -542,7 +646,8 @@ struct HomeView: View {
 
                     Spacer()
                 }
-                .padding(16)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
                 .background(OPTheme.surface)
             }
             .clipShape(RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous))
@@ -624,11 +729,11 @@ struct HomeView: View {
     private var healthSummary: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Text("Здравето на Рекс")
+                Text("Здравето на \(store.dogs.first?.name ?? "кучето")")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(OPTheme.text)
 
-                let healthScore = store.healthScore(for: "1")
+                let healthScore = store.healthScore(for: store.dogs.first?.id ?? "")
                 let scoreColor: Color = healthScore >= 80 ? OPTheme.success : healthScore >= 50 ? OPTheme.warning : OPTheme.danger
                 Text("\(healthScore)")
                     .font(.system(size: 11, weight: .bold))
@@ -642,7 +747,7 @@ struct HomeView: View {
 
             VStack(spacing: 0) {
                 // Weight display
-                NavigationLink(destination: WeightView(dogId: "1")) {
+                NavigationLink(destination: WeightView(dogId: store.dogs.first?.id ?? "")) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("ТЕГЛО")
@@ -678,7 +783,7 @@ struct HomeView: View {
                         label: "5/6",
                         sub: "ваксини",
                         color: OPTheme.success,
-                        destination: VaccineListView(dogId: "1"),
+                        destination: VaccineListView(dogId: store.dogs.first?.id ?? ""),
                         iconOffset: vaccineIconAppeared ? 0 : 20,
                         iconOpacity: vaccineIconAppeared ? 1 : 0,
                         iconScale: vaccinePopScale,
@@ -692,7 +797,7 @@ struct HomeView: View {
                         label: "12d",
                         sub: "гриминг",
                         color: OPTheme.sky,
-                        destination: VaccineListView(dogId: "1"),
+                        destination: VaccineListView(dogId: store.dogs.first?.id ?? ""),
                         iconOffset: 0,
                         iconOpacity: groomingIconAppeared ? 1 : 0,
                         iconScale: 1.0,
@@ -706,7 +811,7 @@ struct HomeView: View {
                         label: "3 м.",
                         sub: "преглед",
                         color: OPTheme.rose,
-                        destination: VaccineListView(dogId: "1"),
+                        destination: VaccineListView(dogId: store.dogs.first?.id ?? ""),
                         iconOffset: 0,
                         iconOpacity: vetIconAppeared ? 1 : 0,
                         iconScale: vetPulseScale,
@@ -732,7 +837,7 @@ struct HomeView: View {
     private func triggerHealthAnimations() {
         // Animate weight counting up
         withAnimation(.spring(response: 0.8, dampingFraction: 0.9).delay(0.2)) {
-            animatedWeight = 14.2
+            animatedWeight = store.dogs.first?.weight ?? 0
         }
 
         // Pill slides in from right

@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 // MARK: - Available Dog Statuses
 
@@ -206,46 +207,39 @@ struct AddStorySheet: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var caption = ""
-    @State private var photoSelected = false
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var photoImage: Image?
+    @State private var photoData: Data?
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
-                // Photo placeholder
-                ZStack {
-                    RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous)
-                        .fill(OPTheme.surfaceSunken)
-                        .frame(height: 300)
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous)
+                            .fill(OPTheme.surfaceSunken)
+                            .frame(height: 300)
 
-                    if photoSelected {
-                        AsyncImage(url: URL(string: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&h=900&q=85")) { phase in
-                            if let image = phase.image {
-                                image.resizable().scaledToFill()
-                            } else {
-                                ProgressView()
+                        if let photoImage {
+                            photoImage
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 300)
+                                .clipShape(RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous))
+                        } else {
+                            VStack(spacing: 12) {
+                                Image(systemName: "photo.on.rectangle.angled")
+                                    .font(.system(size: 36))
+                                    .foregroundStyle(OPTheme.textTertiary)
+                                Text("Избери снимка")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(OPTheme.textSecondary)
                             }
                         }
-                        .frame(height: 300)
-                        .clipShape(RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous))
-                    } else {
-                        VStack(spacing: 12) {
-                            Image(systemName: "camera.fill")
-                                .font(.system(size: 36))
-                                .foregroundStyle(OPTheme.textTertiary)
-                            Text("Натисни за снимка")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(OPTheme.textSecondary)
-                        }
-                    }
-                }
-                .onTapGesture {
-                    withAnimation(OPTheme.quickSpring) {
-                        photoSelected = true
                     }
                 }
                 .padding(.horizontal, OPTheme.screenPadding)
 
-                // Caption field
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Надпис")
                         .font(.system(size: 13, weight: .bold))
@@ -262,9 +256,12 @@ struct AddStorySheet: View {
 
                 Spacer()
 
-                // Share button
                 Button {
-                    store.addStory(caption: caption)
+                    var savedURL: URL?
+                    if let data = photoData {
+                        savedURL = PhotoStorage.save(imageData: data, for: "story_\(UUID().uuidString)")
+                    }
+                    store.addStory(caption: caption, photoURL: savedURL)
                     dismiss()
                 } label: {
                     Text("Сподели")
@@ -273,11 +270,11 @@ struct AddStorySheet: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(
-                            photoSelected ? AnyShapeStyle(OPTheme.primaryGradient) : AnyShapeStyle(OPTheme.surfaceSunken),
+                            photoImage != nil ? AnyShapeStyle(OPTheme.primaryGradient) : AnyShapeStyle(OPTheme.surfaceSunken),
                             in: RoundedRectangle(cornerRadius: 14, style: .continuous)
                         )
                 }
-                .disabled(!photoSelected)
+                .disabled(photoImage == nil)
                 .padding(.horizontal, OPTheme.screenPadding)
                 .padding(.bottom, 20)
             }
@@ -287,6 +284,16 @@ struct AddStorySheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Отказ") { dismiss() }
+                }
+            }
+            .onChange(of: selectedPhoto) { _, newValue in
+                Task {
+                    if let data = try? await newValue?.loadTransferable(type: Data.self) {
+                        photoData = data
+                        if let uiImage = UIImage(data: data) {
+                            photoImage = Image(uiImage: uiImage)
+                        }
+                    }
                 }
             }
         }

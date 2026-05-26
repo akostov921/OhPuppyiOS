@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct SettingsView: View {
     @Environment(AppStore.self) private var store
@@ -9,6 +10,7 @@ struct SettingsView: View {
     @State private var showLanguage = false
     @State private var showDarkMode = false
     @State private var showHelp = false
+    @State private var showInviteShare = false
     @State private var showAbout = false
 
     var body: some View {
@@ -49,11 +51,10 @@ struct SettingsView: View {
                             .foregroundStyle(OPTheme.textSecondary)
                     }
 
-                    // Stats
                     HStack(spacing: 24) {
-                        profileStat(value: "3", label: "Кучета")
-                        profileStat(value: "48", label: "Последователи")
-                        profileStat(value: "12", label: "Разходки")
+                        profileStat(value: "\(store.dogs.count)", label: "Кучета")
+                        profileStat(value: "\(store.vaccines.count)", label: "Ваксини")
+                        profileStat(value: "\(store.vetVisits.count)", label: "Прегледи")
                     }
                     .padding(.top, 4)
                 }
@@ -144,6 +145,10 @@ struct SettingsView: View {
                             .padding(.vertical, 12)
                         }
                         .buttonStyle(.plain)
+                        Divider().padding(.leading, 58)
+                        settingsButton(icon: "person.2.fill", label: "Покани приятел", color: OPTheme.accent) {
+                            showInviteShare = true
+                        }
                     }
                     .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous))
                     .overlay(
@@ -239,6 +244,9 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showAbout) {
             AboutSheet()
+        }
+        .sheet(isPresented: $showInviteShare) {
+            ShareSheet(activityItems: ["Хей! Свали OhPuppy и нека се разхождаме заедно с кучетата! \u{1F43E}\nhttps://ohpuppy.bg/download"])
         }
     }
 

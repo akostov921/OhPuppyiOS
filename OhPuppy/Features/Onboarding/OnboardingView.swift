@@ -1,8 +1,12 @@
 import SwiftUI
+import CoreLocation
+import UserNotifications
 
 struct OnboardingView: View {
     @Environment(AppStore.self) private var store
     @State private var currentStep = 0
+    @State private var locationGranted = false
+    @State private var notificationsGranted = false
 
     var body: some View {
         ZStack {
@@ -28,7 +32,6 @@ struct OnboardingView: View {
 
                 Spacer()
 
-                // Page dots
                 HStack(spacing: 8) {
                     ForEach(0..<3, id: \.self) { index in
                         Circle()
@@ -39,14 +42,13 @@ struct OnboardingView: View {
                 }
                 .padding(.bottom, 32)
 
-                // Action button
                 Button {
                     if currentStep < 2 {
                         withAnimation(OPTheme.springAnimation) {
                             currentStep += 1
                         }
                     } else {
-                        store.completeOnboarding()
+                        requestPermissions()
                     }
                 } label: {
                     Text(buttonTitle)
@@ -66,7 +68,18 @@ struct OnboardingView: View {
         switch currentStep {
         case 0: "Започни"
         case 1: "Продължи"
-        default: "Готово"
+        default: "Разреши и продължи"
+        }
+    }
+
+    private func requestPermissions() {
+        let locationManager = CLLocationManager()
+        locationManager.requestWhenInUseAuthorization()
+
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            store.completeOnboarding()
         }
     }
 
@@ -186,8 +199,8 @@ struct OnboardingView: View {
                 permissionRow(
                     icon: "camera.fill",
                     color: OPTheme.accent,
-                    title: "Камера",
-                    explanation: "За снимки на кучето ти. Не снимаме без разрешение."
+                    title: "Камера и снимки",
+                    explanation: "За снимки на кучето ти от галерията."
                 )
 
                 permissionRow(

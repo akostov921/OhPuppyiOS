@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct EditDogView: View {
     let dog: Dog
@@ -13,6 +14,9 @@ struct EditDogView: View {
     @State private var microchip: String
     @State private var bio: String
     @State private var showDeleteAlert = false
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var photoData: Data?
+    @State private var photoImage: Image?
 
     init(dog: Dog) {
         self.dog = dog
@@ -30,7 +34,6 @@ struct EditDogView: View {
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Title
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Редактирай\nпрофила")
                             .font(.system(size: 28, weight: .bold))
@@ -40,7 +43,35 @@ struct EditDogView: View {
                             .foregroundStyle(OPTheme.textSecondary)
                     }
 
-                    // Form fields
+                    HStack {
+                        Spacer()
+                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                            ZStack(alignment: .bottomTrailing) {
+                                if let photoImage {
+                                    photoImage
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(OPTheme.avatarRingGradient, lineWidth: 3))
+                                } else {
+                                    DogAvatar(url: dog.avatarURL, size: 100, showRing: true)
+                                }
+
+                                Circle()
+                                    .fill(OPTheme.primaryGradient)
+                                    .frame(width: 34, height: 34)
+                                    .overlay {
+                                        Image(systemName: "camera.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(.white)
+                                    }
+                                    .overlay(Circle().stroke(OPTheme.bg, lineWidth: 3))
+                            }
+                        }
+                        Spacer()
+                    }
+
                     formField("Име", text: $name, placeholder: "Рекс")
                     formField("Порода", text: $breed, placeholder: "Лабрадор ретривър")
 
@@ -56,7 +87,6 @@ struct EditDogView: View {
 
                     formField("Тегло (кг)", text: $weight, placeholder: "14.2", keyboard: .decimalPad)
 
-                    // Sex picker
                     VStack(alignment: .leading, spacing: 8) {
                         Text("ПОЛ")
                             .font(.system(size: 12, weight: .semibold))
@@ -81,7 +111,6 @@ struct EditDogView: View {
                         }
                     }
 
-                    // Neutered toggle
                     Toggle(isOn: $neutered) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Кастриран").font(.system(size: 15, weight: .medium)).foregroundStyle(OPTheme.text)
@@ -94,7 +123,6 @@ struct EditDogView: View {
 
                     formField("Микрочип №", text: $microchip, placeholder: "900164001234567", keyboard: .numberPad)
 
-                    // Bio
                     VStack(alignment: .leading, spacing: 6) {
                         Text("БИОГРАФИЯ")
                             .font(.system(size: 12, weight: .semibold))
@@ -108,7 +136,6 @@ struct EditDogView: View {
                             .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
 
-                    // Save button
                     Button {
                         saveChanges()
                     } label: {
@@ -126,7 +153,6 @@ struct EditDogView: View {
                     .disabled(name.isEmpty)
                     .padding(.top, 10)
 
-                    // Delete button
                     Button(role: .destructive) {
                         showDeleteAlert = true
                     } label: {
@@ -171,6 +197,16 @@ struct EditDogView: View {
             } message: {
                 Text("Всички данни за \(dog.name) ще бъдат изтрити завинаги. Това действие е необратимо.")
             }
+            .onChange(of: selectedPhoto) { _, newValue in
+                Task {
+                    if let data = try? await newValue?.loadTransferable(type: Data.self) {
+                        photoData = data
+                        if let uiImage = UIImage(data: data) {
+                            photoImage = Image(uiImage: uiImage)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -199,6 +235,14 @@ struct EditDogView: View {
         updated.neutered = neutered
         updated.microchip = microchip.isEmpty ? nil : microchip
         updated.bio = bio.isEmpty ? nil : bio
+
+        if let data = photoData {
+            if let oldURL = dog.avatarURL, oldURL.isFileURL {
+                PhotoStorage.delete(url: oldURL)
+            }
+            updated.avatarURL = PhotoStorage.save(imageData: data, for: dog.id)
+        }
+
         withAnimation(OPTheme.springAnimation) {
             store.updateDog(updated)
         }

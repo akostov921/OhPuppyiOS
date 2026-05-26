@@ -106,7 +106,7 @@ struct EventsView: View {
 
 // MARK: - Event Model
 
-struct DogEvent: Identifiable {
+struct DogEvent: Identifiable, Codable {
     let id: String
     let title: String
     let dayNumber: String

@@ -1,4 +1,5 @@
 import SwiftUI
+import MapKit
 
 struct MapDogPin: Identifiable {
     let id: String
@@ -7,12 +8,13 @@ struct MapDogPin: Identifiable {
     let age: String
     let distance: String
     let avatarURL: String
-    let offset: CGSize
-    let nearbyDogId: String? // links to NearbyDog for profile navigation
+    let coordinate: CLLocationCoordinate2D
+    let nearbyDogId: String?
 }
 
 struct MapView: View {
     @Environment(AppStore.self) private var store
+    @State private var locationManager = LocationManager()
     @State private var selectedFilter = "Всички"
     @State private var isFollowing = false
     @State private var showFilterSheet = false
@@ -26,22 +28,33 @@ struct MapView: View {
     @State private var selectedDog: MapDogPin?
     @State private var showPublicProfile = false
     @State private var selectedNearbyDog: NearbyDog?
+    @State private var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
+    @AppStorage("inviteBannerDismissed") private var inviteBannerDismissed = false
+    @State private var showInviteShare = false
 
     private let filters = ["Всички", "Кучета", "Места", "Събития", "Изгубени"]
 
-    private let mapDogs: [MapDogPin] = [
-        MapDogPin(id: "d1", name: "Рекс", breed: "Лабрадор", age: "4 г.", distance: "80 м от теб", avatarURL: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=100&h=100&q=85", offset: CGSize(width: -60, height: -40), nearbyDogId: nil),
-        MapDogPin(id: "d2", name: "Тоби", breed: "Бордер коли", age: "2 г.", distance: "250 м от теб", avatarURL: "https://images.unsplash.com/photo-1551717743-49959800b1f6?auto=format&fit=crop&w=100&h=100&q=85", offset: CGSize(width: 80, height: 20), nearbyDogId: "nd1"),
-        MapDogPin(id: "d3", name: "Кокчо", breed: "Шпиц", age: "1 г.", distance: "800 м от теб", avatarURL: "https://images.unsplash.com/photo-1568393691080-7d191a564ef8?auto=format&fit=crop&w=100&h=100&q=85", offset: CGSize(width: -20, height: 80), nearbyDogId: "nd4"),
-        MapDogPin(id: "d4", name: "Мила", breed: "Корги", age: "3 г.", distance: "400 м от теб", avatarURL: "https://images.unsplash.com/photo-1612536057832-2ff7ead58194?auto=format&fit=crop&w=100&h=100&q=85", offset: CGSize(width: 50, height: -100), nearbyDogId: "nd2"),
-    ]
+    private var mapDogs: [MapDogPin] {
+        guard let center = locationManager.userLocation else {
+            let sofia = CLLocationCoordinate2D(latitude: 42.6977, longitude: 23.3219)
+            return generatePins(around: sofia)
+        }
+        return generatePins(around: center)
+    }
+
+    private func generatePins(around center: CLLocationCoordinate2D) -> [MapDogPin] {
+        [
+            MapDogPin(id: "d1", name: store.dogs.first?.name ?? "Рекс", breed: store.dogs.first?.breed ?? "Лабрадор", age: store.dogs.first?.age ?? "4 г.", distance: "Твоето куче", avatarURL: store.dogs.first?.avatarURL?.absoluteString ?? "", coordinate: center, nearbyDogId: nil),
+            MapDogPin(id: "d2", name: "Тоби", breed: "Бордер коли", age: "2 г.", distance: "250 м от теб", avatarURL: "https://images.unsplash.com/photo-1551717743-49959800b1f6?auto=format&fit=crop&w=100&h=100&q=85", coordinate: CLLocationCoordinate2D(latitude: center.latitude + 0.002, longitude: center.longitude + 0.003), nearbyDogId: "nd1"),
+            MapDogPin(id: "d3", name: "Кокчо", breed: "Шпиц", age: "1 г.", distance: "800 м от теб", avatarURL: "https://images.unsplash.com/photo-1568393691080-7d191a564ef8?auto=format&fit=crop&w=100&h=100&q=85", coordinate: CLLocationCoordinate2D(latitude: center.latitude - 0.003, longitude: center.longitude + 0.001), nearbyDogId: "nd4"),
+            MapDogPin(id: "d4", name: "Мила", breed: "Корги", age: "3 г.", distance: "400 м от теб", avatarURL: "https://images.unsplash.com/photo-1612536057832-2ff7ead58194?auto=format&fit=crop&w=100&h=100&q=85", coordinate: CLLocationCoordinate2D(latitude: center.latitude + 0.001, longitude: center.longitude - 0.004), nearbyDogId: "nd2"),
+        ]
+    }
 
     var body: some View {
         ZStack {
-            // Fake map background
-            fakeMapBackground
+            mapContent
 
-            // Top controls
             VStack(spacing: 0) {
                 searchBar
                     .padding(.horizontal, OPTheme.screenPadding)
@@ -53,16 +66,24 @@ struct MapView: View {
                 Spacer()
             }
 
-            // Dog pins on "map"
-            dogPins
-
-            // FAB buttons (right side)
             VStack {
                 Spacer()
                 HStack {
                     Spacer()
                     VStack(spacing: 12) {
-                        // Playdate FAB
+                        Button {
+                            withAnimation {
+                                cameraPosition = .userLocation(fallback: .automatic)
+                            }
+                        } label: {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 50, height: 50)
+                                .background(OPTheme.primaryGradient, in: Circle())
+                                .shadow(color: OPTheme.primary.opacity(0.4), radius: 8, y: 3)
+                        }
+
                         NavigationLink(destination: PlaydateView()) {
                             Image(systemName: "heart.fill")
                                 .font(.system(size: 18, weight: .semibold))
@@ -72,7 +93,6 @@ struct MapView: View {
                                 .shadow(color: OPTheme.mint.opacity(0.4), radius: 8, y: 3)
                         }
 
-                        // Dog Walkers FAB
                         NavigationLink(destination: DogWalkerView()) {
                             Image(systemName: "figure.walk")
                                 .font(.system(size: 18, weight: .semibold))
@@ -87,9 +107,14 @@ struct MapView: View {
                 .padding(.bottom, 100)
             }
 
-            // Bottom nearby card
             VStack {
                 Spacer()
+                if !inviteBannerDismissed {
+                    inviteFriendBanner
+                        .padding(.horizontal, OPTheme.screenPadding)
+                        .padding(.bottom, 8)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
                 if selectedDog != nil {
                     nearbyDogCard
                         .padding(.horizontal, OPTheme.screenPadding)
@@ -98,6 +123,7 @@ struct MapView: View {
                 }
             }
             .animation(OPTheme.quickSpring, value: selectedDog?.id)
+            .animation(OPTheme.quickSpring, value: inviteBannerDismissed)
         }
         .navigationBarHidden(true)
         .sheet(isPresented: $showFilterSheet) {
@@ -121,11 +147,84 @@ struct MapView: View {
                 PublicDogProfileView(dog: nearby)
             }
         }
+        .sheet(isPresented: $showInviteShare) {
+            ShareSheet(activityItems: ["Хей! Свали OhPuppy и нека се разхождаме заедно с кучетата! \u{1F43E}\nhttps://ohpuppy.bg/download"])
+        }
         .onAppear {
-            if selectedDog == nil {
+            locationManager.requestPermission()
+            locationManager.startUpdating()
+            if selectedDog == nil, mapDogs.count > 1 {
                 selectedDog = mapDogs[1]
             }
         }
+    }
+
+    // MARK: - Real Map
+
+    private var mapContent: some View {
+        Map(position: $cameraPosition) {
+            UserAnnotation()
+
+            ForEach(mapDogs) { dog in
+                Annotation(dog.name, coordinate: dog.coordinate) {
+                    Button {
+                        withAnimation(OPTheme.quickSpring) {
+                            selectedDog = dog
+                        }
+                    } label: {
+                        mapPinLabel(dog: dog)
+                    }
+                }
+            }
+        }
+        .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .including([.park, .hospital, .store])))
+        .mapControls {
+            MapCompass()
+            MapScaleView()
+        }
+        .ignoresSafeArea()
+    }
+
+    private func mapPinLabel(dog: MapDogPin) -> some View {
+        let isSelected = selectedDog?.id == dog.id
+        let isOwnDog = dog.id == "d1"
+        return VStack(spacing: 0) {
+            ZStack(alignment: .bottomTrailing) {
+                AsyncImage(url: URL(string: dog.avatarURL)) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Circle().fill(OPTheme.surfaceSunken)
+                            .overlay {
+                                Image(systemName: "pawprint.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(OPTheme.mint)
+                            }
+                    }
+                }
+                .frame(width: isSelected ? 52 : 44, height: isSelected ? 52 : 44)
+                .clipShape(Circle())
+                .overlay(
+                    Circle().stroke(
+                        isSelected ? AnyShapeStyle(OPTheme.mint) : AnyShapeStyle(OPTheme.avatarRingGradient),
+                        lineWidth: isSelected ? 4 : 3
+                    )
+                )
+                .shadow(color: OPTheme.primary.opacity(0.3), radius: 6, y: 3)
+
+                if isOwnDog {
+                    DogStatusEmoji()
+                        .offset(x: 4, y: 4)
+                }
+            }
+
+            Triangle()
+                .fill(isSelected ? OPTheme.mint : OPTheme.primary)
+                .frame(width: 12, height: 8)
+                .offset(y: -2)
+        }
+        .scaleEffect(isSelected ? 1.1 : 1.0)
+        .animation(OPTheme.quickSpring, value: isSelected)
     }
 
     // MARK: - Nearby Dog Lookup
@@ -133,60 +232,6 @@ struct MapView: View {
     private func nearbyDogFor(pin: MapDogPin) -> NearbyDog? {
         guard let ndId = pin.nearbyDogId else { return nil }
         return nearbyDogsData.first { $0.id == ndId }
-    }
-
-    // MARK: - Fake Map Background
-
-    private var fakeMapBackground: some View {
-        ZStack {
-            // Base gradient
-            LinearGradient(
-                colors: [Color(hex: "E8F5E9"), Color(hex: "F1F8E9"), Color(hex: "E0F2F1")],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            // "Roads"
-            Canvas { context, size in
-                // Horizontal roads
-                var path1 = Path()
-                path1.move(to: CGPoint(x: 0, y: size.height * 0.3))
-                path1.addCurve(to: CGPoint(x: size.width, y: size.height * 0.35),
-                              control1: CGPoint(x: size.width * 0.3, y: size.height * 0.25),
-                              control2: CGPoint(x: size.width * 0.7, y: size.height * 0.4))
-                context.stroke(path1, with: .color(.white.opacity(0.8)), lineWidth: 12)
-
-                var path2 = Path()
-                path2.move(to: CGPoint(x: 0, y: size.height * 0.65))
-                path2.addLine(to: CGPoint(x: size.width, y: size.height * 0.6))
-                context.stroke(path2, with: .color(.white.opacity(0.8)), lineWidth: 10)
-
-                // Vertical roads
-                var path3 = Path()
-                path3.move(to: CGPoint(x: size.width * 0.4, y: 0))
-                path3.addLine(to: CGPoint(x: size.width * 0.35, y: size.height))
-                context.stroke(path3, with: .color(.white.opacity(0.8)), lineWidth: 10)
-
-                var path4 = Path()
-                path4.move(to: CGPoint(x: size.width * 0.75, y: 0))
-                path4.addCurve(to: CGPoint(x: size.width * 0.8, y: size.height),
-                              control1: CGPoint(x: size.width * 0.7, y: size.height * 0.4),
-                              control2: CGPoint(x: size.width * 0.85, y: size.height * 0.7))
-                context.stroke(path4, with: .color(.white.opacity(0.8)), lineWidth: 10)
-            }
-
-            // Green area (park)
-            Ellipse()
-                .fill(Color(hex: "C8E6C9").opacity(0.6))
-                .frame(width: 160, height: 120)
-                .offset(x: -40, y: 60)
-
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(hex: "A5D6A7").opacity(0.4))
-                .frame(width: 80, height: 50)
-                .offset(x: 100, y: -120)
-        }
-        .ignoresSafeArea()
     }
 
     // MARK: - Search Bar
@@ -247,67 +292,60 @@ struct MapView: View {
         }
     }
 
-    // MARK: - Dog Pins
+    // MARK: - Nearby Dog Card
 
-    private var dogPins: some View {
-        ZStack {
-            ForEach(mapDogs) { dog in
-                mapPin(dog: dog)
+    // MARK: - Invite Friend Banner
+
+    private var inviteFriendBanner: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(OPTheme.accentSoft)
+                    .frame(width: 46, height: 46)
+                Image(systemName: "pawprint.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(OPTheme.accent)
+                    .symbolEffect(.wiggle.byLayer)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Няма кучета наблизо?")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(OPTheme.text)
+                Text("Покани приятел с куче!")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(OPTheme.textSecondary)
+            }
+
+            Spacer()
+
+            Button { showInviteShare = true } label: {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 34, height: 34)
+                    .background(OPTheme.primaryGradient, in: Circle())
+            }
+
+            Button {
+                withAnimation(OPTheme.quickSpring) { inviteBannerDismissed = true }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(OPTheme.textTertiary)
+                    .frame(width: 22, height: 22)
+                    .background(OPTheme.surfaceSunken, in: Circle())
             }
         }
-    }
-
-    private func mapPin(dog: MapDogPin) -> some View {
-        let isSelected = selectedDog?.id == dog.id
-        let isOwnDog = dog.id == "d1"
-        return Button {
-            withAnimation(OPTheme.quickSpring) {
-                selectedDog = dog
-                isFollowing = false
-            }
-        } label: {
-            VStack(spacing: 0) {
-                ZStack(alignment: .bottomTrailing) {
-                    AsyncImage(url: URL(string: dog.avatarURL)) { phase in
-                        if let image = phase.image {
-                            image.resizable().scaledToFill()
-                        } else {
-                            Circle().fill(OPTheme.surfaceSunken)
-                        }
-                    }
-                    .frame(width: isSelected ? 52 : 44, height: isSelected ? 52 : 44)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle().stroke(
-                            isSelected ? AnyShapeStyle(OPTheme.mint) : AnyShapeStyle(OPTheme.avatarRingGradient),
-                            lineWidth: isSelected ? 4 : 3
-                        )
-                    )
-                    .shadow(color: OPTheme.primary.opacity(0.3), radius: 6, y: 3)
-
-                    // Status emoji badge on own dog
-                    if isOwnDog {
-                        DogStatusEmoji()
-                            .offset(x: 4, y: 4)
-                    }
-                }
-
-                // Pin triangle
-                Triangle()
-                    .fill(isSelected ? OPTheme.mint : OPTheme.primary)
-                    .frame(width: 12, height: 8)
-                    .offset(y: -2)
-            }
-        }
-        .offset(dog.offset)
-        .scaleEffect(isSelected ? 1.1 : 1.0)
-        .animation(OPTheme.quickSpring, value: isSelected)
+        .padding(12)
+        .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: OPTheme.cornerRadiusSmall, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
     }
 
     // MARK: - Nearby Dog Card
 
     private var nearbyDogCard: some View {
-        let dog = selectedDog ?? mapDogs[1]
+        let dog = selectedDog ?? mapDogs.first!
         let nearbyDog = nearbyDogFor(pin: dog)
         let isOwnDog = dog.id == "d1"
 
@@ -359,7 +397,6 @@ struct MapView: View {
                 }
             }
 
-            // "View profile" button for non-own dogs
             if !isOwnDog, nearbyDog != nil {
                 Button {
                     selectedNearbyDog = nearbyDog

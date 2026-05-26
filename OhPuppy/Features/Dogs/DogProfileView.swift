@@ -7,6 +7,7 @@ struct DogProfileView: View {
     @State private var activeTab = 0
     @State private var scrollOffset: CGFloat = 0
     @State private var showEditDog = false
+    @State private var showShareProfile = false
 
     private var dog: Dog {
         store.dogs.first { $0.id == dogId } ?? Dog(id: dogId, name: "?", breed: "", birthDate: .now, sex: .male, neutered: false, weight: 0, ownerId: "1")
@@ -42,6 +43,9 @@ struct DogProfileView: View {
         .sheet(isPresented: $showEditDog) {
             EditDogView(dog: dog)
         }
+        .sheet(isPresented: $showShareProfile) {
+            ShareDogProfileSheet(dogId: dogId)
+        }
         .onChange(of: store.dogs) { _, newValue in
             if !newValue.contains(where: { $0.id == dogId }) {
                 dismiss()
@@ -74,6 +78,14 @@ struct DogProfileView: View {
             HStack {
                 BackButton()
                 Spacer()
+                Button { showShareProfile = true } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.white.opacity(0.2), lineWidth: 1))
+                }
                 Button { showEditDog = true } label: {
                     Image(systemName: "pencil")
                         .font(.system(size: 16, weight: .bold))
@@ -476,5 +488,148 @@ struct DogProfileView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(.ultraThinMaterial, in: Capsule())
+    }
+}
+
+// MARK: - Share Dog Profile Sheet
+
+struct ShareDogProfileSheet: View {
+    let dogId: String
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+
+    private var dog: Dog {
+        store.dogs.first { $0.id == dogId } ?? Dog(id: dogId, name: "?", breed: "", birthDate: .now, sex: .male, neutered: false, weight: 0, ownerId: "1")
+    }
+
+    private var shareText: String {
+        let vaccines = store.vaccinesFor(dogId: dogId)
+        let vaccineList = vaccines.map { "\($0.type.label) — \($0.dateAdministered.shortBG)" }.joined(separator: "\n  ")
+        let healthScore = store.healthScore(for: dogId)
+
+        return """
+        \(dog.name) — \(dog.breed)
+        \(dog.sex == .male ? "Мъжки" : "Женски") \u{2022} \(dog.age) \u{2022} \(String(format: "%.1f", dog.weight)) кг
+        \(dog.neutered ? "Кастриран" : "Некастриран")
+        Микрочип: \(dog.microchip ?? "Няма")
+        Здравен скор: \(healthScore)/100
+
+        Ваксини:
+          \(vaccineList.isEmpty ? "Няма регистрирани" : vaccineList)
+
+        Споделено чрез OhPuppy
+        """
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    HStack(spacing: 14) {
+                        AsyncImage(url: dog.avatarURL) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFill()
+                            } else {
+                                Circle().fill(OPTheme.surfaceSunken)
+                            }
+                        }
+                        .frame(width: 70, height: 70)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(OPTheme.avatarRingGradient, lineWidth: 3))
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(dog.name)
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundStyle(OPTheme.text)
+                            Text("\(dog.breed) \u{2022} \(dog.age)")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(OPTheme.textSecondary)
+                        }
+                        Spacer()
+                    }
+
+                    VStack(spacing: 0) {
+                        infoRow(icon: "scalemass.fill", label: "Тегло", value: "\(String(format: "%.1f", dog.weight)) кг", color: OPTheme.mint)
+                        Divider().padding(.leading, 50)
+                        infoRow(icon: dog.sex == .male ? "figure.stand" : "figure.stand.dress", label: "Пол", value: dog.sex == .male ? "Мъжки" : "Женски", color: OPTheme.sky)
+                        Divider().padding(.leading, 50)
+                        infoRow(icon: "heart.fill", label: "Кастриран", value: dog.neutered ? "Да" : "Не", color: OPTheme.rose)
+                        Divider().padding(.leading, 50)
+                        infoRow(icon: "cpu", label: "Микрочип", value: dog.microchip ?? "Няма", color: OPTheme.primary)
+                        Divider().padding(.leading, 50)
+                        infoRow(icon: "cross.vial.fill", label: "Ваксини", value: "\(store.vaccinesFor(dogId: dogId).count) регистрирани", color: OPTheme.accent)
+                        Divider().padding(.leading, 50)
+                        infoRow(icon: "chart.bar.fill", label: "Здравен скор", value: "\(store.healthScore(for: dogId))/100", color: OPTheme.success)
+                    }
+                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: OPTheme.cornerRadiusSmall, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: OPTheme.cornerRadiusSmall, style: .continuous)
+                            .stroke(OPTheme.border, lineWidth: 1)
+                    )
+
+                    VStack(spacing: 12) {
+                        ShareLink(item: shareText) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 15, weight: .semibold))
+                                Text("Сподели профил")
+                                    .font(.system(size: 16, weight: .bold))
+                            }
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(OPTheme.primaryGradient, in: Capsule())
+                            .shadow(color: OPTheme.primary.opacity(0.3), radius: 8, y: 4)
+                        }
+
+                        NavigationLink(destination: DigitalPassportView(dogId: dogId)) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "qrcode")
+                                    .font(.system(size: 15, weight: .semibold))
+                                Text("QR Паспорт")
+                                    .font(.system(size: 16, weight: .bold))
+                            }
+                            .foregroundStyle(OPTheme.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(OPTheme.primarySoft, in: Capsule())
+                        }
+                    }
+                }
+                .padding(OPTheme.screenPadding)
+            }
+            .background(OPTheme.bg)
+            .navigationTitle("Сподели \(dog.name)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Готово") { dismiss() }
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(OPTheme.primary)
+                }
+            }
+        }
+    }
+
+    private func infoRow(icon: String, label: String, value: String, color: Color) -> some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(color.opacity(0.12))
+                .frame(width: 36, height: 36)
+                .overlay {
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(color)
+                }
+            Text(label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(OPTheme.textSecondary)
+            Spacer()
+            Text(value)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(OPTheme.text)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
     }
 }

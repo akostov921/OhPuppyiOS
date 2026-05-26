@@ -34,20 +34,20 @@ enum OPTheme {
     static let info = Color(hex: "457B9D")
     static let infoSoft = Color(hex: "E3EEF5")
 
-    // Surfaces — WHITE based
-    static let bg = Color.white
-    static let surface = Color.white
-    static let surfaceSecondary = Color(hex: "F8F9FA")
-    static let surfaceSunken = Color(hex: "F1F3F5")
+    // Surfaces — adaptive
+    static let bg = Color(.systemBackground)
+    static let surface = Color(.systemBackground)
+    static let surfaceSecondary = Color(.secondarySystemBackground)
+    static let surfaceSunken = Color(.tertiarySystemBackground)
 
-    // Text
-    static let text = Color(hex: "1A1A2E")
-    static let textSecondary = Color(hex: "6C757D")
-    static let textTertiary = Color(hex: "ADB5BD")
+    // Text — adaptive
+    static let text = Color(.label)
+    static let textSecondary = Color(.secondaryLabel)
+    static let textTertiary = Color(.tertiaryLabel)
 
     // Borders
-    static let border = Color(hex: "000000").opacity(0.06)
-    static let borderStrong = Color(hex: "000000").opacity(0.12)
+    static let border = Color(.separator)
+    static let borderStrong = Color(.opaqueSeparator)
 
     // MARK: - Gradients
 

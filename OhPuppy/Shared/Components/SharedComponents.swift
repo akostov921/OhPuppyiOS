@@ -305,3 +305,15 @@ struct BackButton: View {
         .onAppear { appeared = true }
     }
 }
+
+// MARK: - Share Sheet
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uvc: UIActivityViewController, context: Context) {}
+}

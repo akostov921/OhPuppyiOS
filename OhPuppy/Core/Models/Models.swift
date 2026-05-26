@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct Dog: Identifiable, Hashable {
+struct Dog: Identifiable, Hashable, Codable {
     let id: String
     var name: String
     var breed: String
@@ -14,7 +14,7 @@ struct Dog: Identifiable, Hashable {
     var avatarURL: URL?
     let ownerId: String
 
-    enum Sex: String, CaseIterable {
+    enum Sex: String, CaseIterable, Codable {
         case male, female
         var label: String {
             switch self {
@@ -46,7 +46,7 @@ struct Dog: Identifiable, Hashable {
     }
 }
 
-struct Vaccine: Identifiable {
+struct Vaccine: Identifiable, Codable {
     let id: String
     let dogId: String
     var type: VaccineType
@@ -57,7 +57,7 @@ struct Vaccine: Identifiable {
     var notes: String?
 }
 
-enum VaccineType: String, CaseIterable, Identifiable {
+enum VaccineType: String, CaseIterable, Identifiable, Codable {
     case rabies, dhppl, bordetella, deworming, externalParasites, other
 
     var id: String { rawValue }
@@ -84,7 +84,7 @@ enum VaccineType: String, CaseIterable, Identifiable {
     }
 }
 
-struct WeightLog: Identifiable {
+struct WeightLog: Identifiable, Codable {
     let id: String
     let dogId: String
     var weight: Double
@@ -92,7 +92,7 @@ struct WeightLog: Identifiable {
     var notes: String?
 }
 
-struct GroomingLog: Identifiable {
+struct GroomingLog: Identifiable, Codable {
     let id: String
     let dogId: String
     var type: GroomType
@@ -101,7 +101,7 @@ struct GroomingLog: Identifiable {
     var price: Double?
     var notes: String?
 
-    enum GroomType: String, CaseIterable {
+    enum GroomType: String, CaseIterable, Codable {
         case bath, haircut, nails, teeth, ears
         var label: String {
             switch self {
@@ -126,7 +126,7 @@ struct GroomingLog: Identifiable {
 
 // MARK: - Vet Visit
 
-struct VetVisit: Identifiable {
+struct VetVisit: Identifiable, Codable {
     let id: String
     let dogId: String
     var date: Date
@@ -140,7 +140,7 @@ struct VetVisit: Identifiable {
 
 // MARK: - Medication
 
-enum MedFrequency: String, CaseIterable {
+enum MedFrequency: String, CaseIterable, Codable {
     case daily, twiceDaily, weekly, monthly, asNeeded
     var label: String {
         switch self {
@@ -153,7 +153,7 @@ enum MedFrequency: String, CaseIterable {
     }
 }
 
-struct Medication: Identifiable {
+struct Medication: Identifiable, Codable {
     let id: String
     let dogId: String
     var name: String
@@ -171,7 +171,7 @@ struct Medication: Identifiable {
 
 // MARK: - Diary Entry
 
-struct DiaryEntry: Identifiable {
+struct DiaryEntry: Identifiable, Codable {
     let id: String
     let dogId: String
     var text: String
@@ -181,7 +181,7 @@ struct DiaryEntry: Identifiable {
 
 // MARK: - Milestone
 
-struct Milestone: Identifiable {
+struct Milestone: Identifiable, Codable {
     let id: String
     let dogId: String
     var emoji: String
@@ -193,7 +193,7 @@ struct Milestone: Identifiable {
 
 // MARK: - Story
 
-struct Story: Identifiable {
+struct Story: Identifiable, Codable {
     let id: String
     let dogName: String
     let ownerName: String
@@ -214,7 +214,7 @@ struct DogStatus: Identifiable {
 
 // MARK: - Lost Dog Alert
 
-struct LostDogAlert: Identifiable {
+struct LostDogAlert: Identifiable, Codable {
     let id: String
     let dogId: String
     var lastSeenTime: Date
@@ -222,4 +222,50 @@ struct LostDogAlert: Identifiable {
     var description: String
     var contactPhone: String
     var isResolved: Bool
+}
+
+// MARK: - Walker Application
+
+struct WalkerApplication: Identifiable, Codable {
+    let id: String
+    var name: String
+    var phone: String
+    var bio: String
+    var services: [ServiceType]
+    var pricePerWalk: Double
+    var idPhotoURL: URL?
+    var status: Status
+    var submittedAt: Date
+
+    enum Status: String, Codable {
+        case pending, approved, rejected
+
+        var label: String {
+            switch self {
+            case .pending: "В изчакване"
+            case .approved: "Одобрен"
+            case .rejected: "Отхвърлен"
+            }
+        }
+    }
+
+    enum ServiceType: String, CaseIterable, Codable {
+        case walking, sitting, training
+
+        var label: String {
+            switch self {
+            case .walking: "Разходка"
+            case .sitting: "Гледане"
+            case .training: "Тренировка"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .walking: "figure.walk"
+            case .sitting: "house.fill"
+            case .training: "graduationcap.fill"
+            }
+        }
+    }
 }
