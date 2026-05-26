@@ -238,6 +238,7 @@ struct SheltersView: View {
 
 struct ShelterDogDetailSheet: View {
     let dog: ShelterDog
+    @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var showAdoptAlert = false
 
@@ -339,6 +340,13 @@ struct ShelterDogDetailSheet: View {
             } message: {
                 Text("Заявката ти е изпратена до \(dog.shelterName). Ще се свържат с теб до 48 часа.")
             }
+            .onChange(of: showAdoptAlert) { _, newValue in
+                if newValue {
+                    let request = AdoptionRequest(id: UUID().uuidString, animalId: dog.id, animalName: dog.name, requesterName: store.ownerName, requesterPhone: "+359 88 000 0000", requesterNote: "", status: .pending, submittedAt: Date())
+                    store.adoptionRequests.append(request)
+                    store.save()
+                }
+            }
         }
     }
 
@@ -359,6 +367,7 @@ struct ShelterDogDetailSheet: View {
 // MARK: - Donate Sheet
 
 struct DonateSheet: View {
+    @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var selectedAmount = 10
     @State private var showThankYou = false
@@ -420,7 +429,11 @@ struct DonateSheet: View {
 
                 Spacer()
 
-                Button { showThankYou = true } label: {
+                Button {
+                    let donation = Donation(id: UUID().uuidString, donorName: store.ownerName, amount: Double(selectedAmount), isRecurring: true, date: Date(), note: nil)
+                    store.addDonation(donation)
+                    showThankYou = true
+                } label: {
                     Text("Дари \(selectedAmount) лв/месец")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.white)

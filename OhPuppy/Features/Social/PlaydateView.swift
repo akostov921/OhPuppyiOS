@@ -22,6 +22,7 @@ struct PlaydateView: View {
     @State private var cardRotation: Double = 0
     @State private var inviteParticles: [ConfettiParticle] = []
     @State private var showFilterSheet = false
+    @State private var showSuperLike = false
 
     private let dogs: [PlaydateDog] = [
         PlaydateDog(id: "pd1", name: "Тоби", breed: "Бордер коли", age: "2г", distance: "250м", compatibility: 92, photoURL: "https://images.unsplash.com/photo-1551717743-49959800b1f6?auto=format&fit=crop&w=600&h=800&q=85", tags: ["Същия размер", "Сходна енергия", "Приятелски"]),
@@ -235,7 +236,7 @@ struct PlaydateView: View {
                 }
             }
 
-            Button { inviteDog() } label: {
+            Button { superLikeDog() } label: {
                 VStack(spacing: 6) {
                     Image(systemName: "star.fill")
                         .font(.system(size: 22, weight: .bold))
@@ -243,6 +244,7 @@ struct PlaydateView: View {
                         .frame(width: 60, height: 60)
                         .background(OPTheme.accentSoft, in: Circle())
                         .overlay(Circle().stroke(OPTheme.accent.opacity(0.3), lineWidth: 1))
+                        .symbolEffect(.bounce, value: showSuperLike)
                     Text("Супер")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(OPTheme.accent)
@@ -313,6 +315,32 @@ struct PlaydateView: View {
         }
     }
 
+    private func superLikeDog() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            dragOffset = CGSize(width: 0, height: -400)
+            cardRotation = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            dragOffset = .zero
+            cardRotation = 0
+            if currentIndex < dogs.count {
+                currentIndex += 1
+            }
+            withAnimation(OPTheme.springAnimation) {
+                showSuperLike = true
+                showInviteSent = true
+            }
+            generateConfetti()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                withAnimation {
+                    showInviteSent = false
+                    showSuperLike = false
+                    inviteParticles = []
+                }
+            }
+        }
+    }
+
     // MARK: - Invite Sent Overlay
 
     private var inviteSentOverlay: some View {
@@ -335,15 +363,17 @@ struct PlaydateView: View {
                 }
                 .frame(width: 200, height: 200)
 
-                Image(systemName: "heart.fill")
+                Image(systemName: showSuperLike ? "star.fill" : "heart.fill")
                     .font(.system(size: 50))
-                    .foregroundStyle(OPTheme.mintGradient)
+                    .foregroundStyle(showSuperLike
+                        ? AnyShapeStyle(LinearGradient(colors: [Color(hex: "FFD700"), OPTheme.accent], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        : AnyShapeStyle(OPTheme.mintGradient))
 
-                Text("Поканата е изпратена!")
+                Text(showSuperLike ? "Супер харесване!" : "Поканата е изпратена!")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(.white)
 
-                Text("Ще получиш известие, когато бъде приета")
+                Text(showSuperLike ? "Ще се покажеш на върха на опашката!" : "Ще получиш известие, когато бъде приета")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.white.opacity(0.8))
             }

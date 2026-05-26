@@ -8,8 +8,9 @@ struct OnboardingView: View {
     @State private var pawFloatOffset: CGFloat = 0
     @State private var pawRotation: Double = 0
     @State private var selectedInterests: Set<HomeSection> = Set(HomeSection.allCases)
+    @State private var selectedRoles: Set<UserRole> = [.owner]
 
-    private let totalSteps = 4
+    private let totalSteps = 5
 
     var body: some View {
         ZStack {
@@ -23,7 +24,8 @@ struct OnboardingView: View {
                     switch currentStep {
                     case 0: welcomeStep
                     case 1: featuresStep
-                    case 2: interestsStep
+                    case 2: roleSelectionStep
+                    case 3: interestsStep
                     default: permissionsStep
                     }
                 }
@@ -73,6 +75,7 @@ struct OnboardingView: View {
         case 0: "Започни"
         case 1: "Продължи"
         case 2: "Продължи"
+        case 3: "Продължи"
         default: "Разреши и продължи"
         }
     }
@@ -118,6 +121,10 @@ struct OnboardingView: View {
 
         let orderedSections = HomeSection.allCases.filter { selectedInterests.contains($0) }
         store.homeSectionOrder = orderedSections.isEmpty ? HomeSection.allCases : orderedSections
+
+        for role in selectedRoles where role != .owner {
+            store.registerRole(role)
+        }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             store.completeOnboarding()
@@ -297,7 +304,93 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 3: Interests
+    // MARK: - Step 3: Role Selection
+
+    private var roleSelectionStep: some View {
+        VStack(spacing: 24) {
+            VStack(spacing: 6) {
+                Text("Кой си")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(OPTheme.text)
+                Text("в OhPuppy?")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(OPTheme.mint)
+            }
+
+            Text("Избери една или повече роли.\nМожеш да превключваш по всяко време.")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(OPTheme.textSecondary)
+                .multilineTextAlignment(.center)
+
+            let roles: [(role: UserRole, desc: String, gradient: LinearGradient)] = [
+                (.owner, "Следи здравето на кучето си", OPTheme.primaryGradient),
+                (.vet, "Управлявай клиника и пациенти", OPTheme.mintGradient),
+                (.walker, "Разхождай кучета и печели", LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .leading, endPoint: .trailing)),
+                (.brand, "Продавай продукти за кучета", OPTheme.accentGradient),
+                (.shelter, "Намери дом за изоставени кучета", LinearGradient(colors: [OPTheme.rose, OPTheme.accent], startPoint: .leading, endPoint: .trailing)),
+            ]
+
+            VStack(spacing: 10) {
+                ForEach(roles, id: \.role) { item in
+                    Button {
+                        withAnimation(OPTheme.quickSpring) {
+                            if item.role == .owner {
+                                return
+                            }
+                            if selectedRoles.contains(item.role) {
+                                selectedRoles.remove(item.role)
+                            } else {
+                                selectedRoles.insert(item.role)
+                            }
+                        }
+                    } label: {
+                        let isSelected = selectedRoles.contains(item.role)
+                        HStack(spacing: 12) {
+                            Image(systemName: item.role.icon)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 36)
+                                .background(item.gradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.role.label)
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundStyle(OPTheme.text)
+                                Text(item.desc)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(OPTheme.textSecondary)
+                            }
+
+                            Spacer()
+
+                            if item.role == .owner {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(OPTheme.mint)
+                            } else {
+                                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(isSelected ? OPTheme.mint : OPTheme.textTertiary)
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(
+                            isSelected ? OPTheme.mintSoft.opacity(0.3) : Color.clear,
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(isSelected ? OPTheme.mint.opacity(0.3) : OPTheme.border, lineWidth: 1)
+                        )
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, OPTheme.screenPadding)
+    }
+
+    // MARK: - Step 4: Interests
 
     private var interestsStep: some View {
         VStack(spacing: 24) {

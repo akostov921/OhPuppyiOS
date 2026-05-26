@@ -562,11 +562,47 @@ struct CreateEventSheet: View {
     @State private var date = Date()
     @State private var location = ""
     @State private var maxAttendees = 10
+    @State private var selectedPhotoIndex = 0
+    private let eventPhotos = [
+        "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=800&h=400&q=85",
+        "https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=800&h=400&q=85",
+        "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&w=800&h=400&q=85",
+        "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=800&h=400&q=85",
+    ]
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Снимка")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(OPTheme.textSecondary)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(0..<eventPhotos.count, id: \.self) { i in
+                                    Button {
+                                        withAnimation(OPTheme.quickSpring) { selectedPhotoIndex = i }
+                                    } label: {
+                                        AsyncImage(url: URL(string: eventPhotos[i])) { phase in
+                                            if let image = phase.image {
+                                                image.resizable().scaledToFill()
+                                            } else {
+                                                Rectangle().fill(OPTheme.surfaceSunken)
+                                            }
+                                        }
+                                        .frame(width: 100, height: 60)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .stroke(selectedPhotoIndex == i ? OPTheme.mint : .clear, lineWidth: 3)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Заглавие")
                             .font(.system(size: 13, weight: .semibold))
@@ -661,7 +697,8 @@ struct CreateEventSheet: View {
             dateTimeText: dateTimeText,
             location: location.isEmpty ? "Не е посочена" : location,
             attending: 1, capacity: maxAttendees,
-            description: description.isEmpty ? nil : description
+            description: description.isEmpty ? nil : description,
+            photoURL: eventPhotos[selectedPhotoIndex]
         )
         store.addEvent(event)
     }

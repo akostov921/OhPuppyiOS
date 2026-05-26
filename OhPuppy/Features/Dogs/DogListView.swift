@@ -68,6 +68,7 @@ struct DogListView: View {
                         }
                     }
                 }
+                .padding(.horizontal, OPTheme.screenPadding)
                 .animation(OPTheme.quickSpring, value: isGridView)
 
                     Button {

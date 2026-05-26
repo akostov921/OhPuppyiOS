@@ -18,6 +18,10 @@ struct MapWalkerPin: Identifiable {
     let rating: Double
     let pricePerWalk: Int
     let coordinate: CLLocationCoordinate2D
+    let badge: WalkerBadge
+    let reviewCount: Int
+    let walksCount: Int
+    let photoURL: String?
 }
 
 struct MapView: View {
@@ -40,7 +44,6 @@ struct MapView: View {
     @AppStorage("inviteBannerDismissed") private var inviteBannerDismissed = false
     @State private var showInviteShare = false
     @State private var selectedWalker: MapWalkerPin?
-    @State private var showWalkerPayment = false
 
     private let filters = ["Всички", "Кучета", "Разходчици", "Места", "Събития", "Изгубени"]
 
@@ -62,8 +65,11 @@ struct MapView: View {
 
     private func generateWalkerPins(around center: CLLocationCoordinate2D) -> [MapWalkerPin] {
         [
-            MapWalkerPin(id: "w1", name: "Мария К.", rating: 4.9, pricePerWalk: 25, coordinate: CLLocationCoordinate2D(latitude: center.latitude + 0.004, longitude: center.longitude - 0.002)),
-            MapWalkerPin(id: "w2", name: "Георги П.", rating: 4.7, pricePerWalk: 20, coordinate: CLLocationCoordinate2D(latitude: center.latitude - 0.002, longitude: center.longitude + 0.005)),
+            MapWalkerPin(id: "w1", name: "Мария К.", rating: 4.9, pricePerWalk: 25, coordinate: CLLocationCoordinate2D(latitude: center.latitude + 0.004, longitude: center.longitude - 0.002), badge: .legend, reviewCount: 89, walksCount: 210, photoURL: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=85"),
+            MapWalkerPin(id: "w2", name: "Георги П.", rating: 4.7, pricePerWalk: 20, coordinate: CLLocationCoordinate2D(latitude: center.latitude - 0.002, longitude: center.longitude + 0.005), badge: .popular, reviewCount: 34, walksCount: 52, photoURL: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=85"),
+            MapWalkerPin(id: "w3", name: "Елена В.", rating: 4.5, pricePerWalk: 18, coordinate: CLLocationCoordinate2D(latitude: center.latitude + 0.001, longitude: center.longitude + 0.006), badge: .reliable, reviewCount: 15, walksCount: 28, photoURL: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&h=100&q=85"),
+            MapWalkerPin(id: "w4", name: "Димитър С.", rating: 5.0, pricePerWalk: 30, coordinate: CLLocationCoordinate2D(latitude: center.latitude - 0.003, longitude: center.longitude - 0.004), badge: .expert, reviewCount: 62, walksCount: 115, photoURL: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=85"),
+            MapWalkerPin(id: "w5", name: "Ива М.", rating: 4.2, pricePerWalk: 15, coordinate: CLLocationCoordinate2D(latitude: center.latitude + 0.005, longitude: center.longitude + 0.003), badge: .newcomer, reviewCount: 3, walksCount: 5, photoURL: nil),
         ]
     }
 
@@ -140,14 +146,12 @@ struct MapView: View {
                         .padding(.bottom, 8)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                if let walker = selectedWalker {
+                if let walker = selectedWalker, selectedDog == nil {
                     walkerCard(walker)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .padding(.horizontal, OPTheme.screenPadding)
                         .padding(.bottom, 16)
-                }
-
-                if selectedDog != nil {
+                } else if selectedDog != nil, selectedWalker == nil {
                     nearbyDogCard
                         .padding(.horizontal, OPTheme.screenPadding)
                         .padding(.bottom, 16)
@@ -155,6 +159,7 @@ struct MapView: View {
                 }
             }
             .animation(OPTheme.quickSpring, value: selectedDog?.id)
+            .animation(OPTheme.quickSpring, value: selectedWalker?.id)
             .animation(OPTheme.quickSpring, value: inviteBannerDismissed)
         }
         .navigationBarHidden(true)
@@ -219,15 +224,7 @@ struct MapView: View {
                                 selectedDog = nil
                             }
                         } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(OPTheme.accentGradient)
-                                    .frame(width: 40, height: 40)
-                                    .shadow(color: OPTheme.accent.opacity(0.4), radius: 6, y: 3)
-                                Image(systemName: "figure.walk")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundStyle(.white)
-                            }
+                            walkerPinView(walker)
                         }
                     }
                 }
@@ -271,6 +268,16 @@ struct MapView: View {
                 if isOwnDog {
                     DogStatusEmoji()
                         .offset(x: 4, y: 4)
+                }
+
+                if isOwnDog && store.acceptsWalkOffers {
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 16, height: 16)
+                        .background(OPTheme.sky, in: Circle())
+                        .overlay(Circle().stroke(.white, lineWidth: 1.5))
+                        .offset(x: -4, y: 4)
                 }
             }
 
@@ -401,62 +408,177 @@ struct MapView: View {
 
     // MARK: - Nearby Dog Card
 
+    // MARK: - Walker Pin
+
+    private func walkerPinView(_ walker: MapWalkerPin) -> some View {
+        let isSelected = selectedWalker?.id == walker.id
+        let pinSize: CGFloat = switch walker.badge {
+        case .legend: 52
+        case .expert: 48
+        case .popular: 44
+        case .reliable: 40
+        case .newcomer: 36
+        }
+        let badgeGradient: LinearGradient = switch walker.badge {
+        case .legend: LinearGradient(colors: [Color(hex: "FFD700"), Color(hex: "FFA500")], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .expert: LinearGradient(colors: [Color(hex: "8B5CF6"), Color(hex: "6D28D9")], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .popular: LinearGradient(colors: [OPTheme.accent, OPTheme.rose], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .reliable: LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .newcomer: LinearGradient(colors: [OPTheme.mint, Color(hex: "2D6A4F")], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        return VStack(spacing: 0) {
+            ZStack(alignment: .bottomTrailing) {
+                if let url = walker.photoURL {
+                    AsyncImage(url: URL(string: url)) { phase in
+                        if let image = phase.image {
+                            image.resizable().scaledToFill()
+                        } else {
+                            Circle().fill(badgeGradient)
+                                .overlay {
+                                    Image(systemName: "figure.walk")
+                                        .font(.system(size: pinSize * 0.4, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                }
+                        }
+                    }
+                    .frame(width: pinSize, height: pinSize)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(badgeGradient, lineWidth: isSelected ? 4 : 3))
+                } else {
+                    Circle()
+                        .fill(badgeGradient)
+                        .frame(width: pinSize, height: pinSize)
+                        .overlay {
+                            Image(systemName: "figure.walk")
+                                .font(.system(size: pinSize * 0.4, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                }
+                Image(systemName: walker.badge.icon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 18, height: 18)
+                    .background(badgeGradient, in: Circle())
+                    .overlay(Circle().stroke(.white, lineWidth: 1.5))
+                    .offset(x: 3, y: 3)
+            }
+            .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
+
+            Triangle()
+                .fill(badgeGradient)
+                .frame(width: 10, height: 6)
+                .offset(y: -1)
+        }
+        .scaleEffect(isSelected ? 1.15 : 1.0)
+        .animation(OPTheme.quickSpring, value: isSelected)
+    }
+
     // MARK: - Walker Card
 
     private func walkerCard(_ walker: MapWalkerPin) -> some View {
-        HStack(spacing: 14) {
-            Circle()
-                .fill(OPTheme.accentGradient)
-                .frame(width: 52, height: 52)
-                .overlay {
-                    Image(systemName: "figure.walk")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(.white)
+        let badgeColor: Color = switch walker.badge {
+        case .legend: Color(hex: "FFD700")
+        case .expert: Color(hex: "8B5CF6")
+        case .popular: OPTheme.accent
+        case .reliable: OPTheme.sky
+        case .newcomer: OPTheme.mint
+        }
+
+        return VStack(spacing: 12) {
+            HStack(spacing: 14) {
+                if let url = walker.photoURL {
+                    AsyncImage(url: URL(string: url)) { phase in
+                        if let image = phase.image {
+                            image.resizable().scaledToFill()
+                        } else {
+                            Circle().fill(OPTheme.surfaceSunken)
+                        }
+                    }
+                    .frame(width: 52, height: 52)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(badgeColor.opacity(0.5), lineWidth: 2))
+                } else {
+                    Circle()
+                        .fill(OPTheme.surfaceSunken)
+                        .frame(width: 52, height: 52)
+                        .overlay {
+                            Image(systemName: "figure.walk")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(OPTheme.mint)
+                        }
                 }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(walker.name)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(OPTheme.accent)
-                    Text(String(format: "%.1f", walker.rating))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(OPTheme.text)
-                    Text("·")
-                    Text("\(walker.pricePerWalk) лв/разходка")
-                        .font(.system(size: 13, weight: .medium))
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(walker.name)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(OPTheme.text)
+                        HStack(spacing: 3) {
+                            Image(systemName: walker.badge.icon)
+                                .font(.system(size: 9, weight: .bold))
+                            Text(walker.badge.label)
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundStyle(badgeColor)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(badgeColor.opacity(0.12), in: Capsule())
+                    }
+                    HStack(spacing: 8) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(OPTheme.accent)
+                            Text(String(format: "%.1f", walker.rating))
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(OPTheme.text)
+                            Text("(\(walker.reviewCount))")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(OPTheme.textTertiary)
+                        }
+                        HStack(spacing: 3) {
+                            Image(systemName: "figure.walk")
+                                .font(.system(size: 10))
+                                .foregroundStyle(OPTheme.sky)
+                            Text("\(walker.walksCount) разходки")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(OPTheme.textSecondary)
+                        }
+                    }
+                }
+
+                Spacer()
+
+                VStack(spacing: 2) {
+                    Text("\(walker.pricePerWalk)")
+                        .font(.system(size: 20, weight: .heavy))
+                        .foregroundStyle(OPTheme.primary)
+                    Text("лв")
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(OPTheme.textSecondary)
                 }
             }
 
-            Spacer()
-
-            Button {
-                showWalkerPayment = true
-            } label: {
-                Text("Плати")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(OPTheme.primaryGradient, in: Capsule())
+            NavigationLink(destination: WalkerProfileView(name: walker.name, photoURL: walker.photoURL, rating: walker.rating, reviewCount: walker.reviewCount, walksCount: walker.walksCount, badge: walker.badge, pricePerWalk: walker.pricePerWalk, walkerId: walker.id)) {
+                HStack(spacing: 6) {
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("Виж профил")
+                        .font(.system(size: 14, weight: .bold))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(OPTheme.primaryGradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
         }
         .padding(14)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(OPTheme.border, lineWidth: 1)
+                .stroke(badgeColor.opacity(0.3), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
-        .alert("Плащане", isPresented: $showWalkerPayment) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("Функцията за плащане с карта ще бъде налична скоро. Ще можете да плащате директно на \(walker.name).")
-        }
     }
 
     // MARK: - Nearby Dog Card

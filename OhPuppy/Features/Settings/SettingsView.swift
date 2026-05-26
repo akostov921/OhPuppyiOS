@@ -31,6 +31,42 @@ struct SettingsView: View {
                 ])
                 .padding(.bottom, 20)
 
+                // Walk offers toggle
+                walkOffersToggle
+                    .padding(.horizontal, OPTheme.screenPadding)
+                    .padding(.bottom, 20)
+
+                NavigationLink(destination: OrderHistoryView()) {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 36, height: 36)
+                            .overlay {
+                                Image(systemName: "bag.fill")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("История на поръчки")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(OPTheme.text)
+                            Text(store.orders.isEmpty ? "Няма поръчки" : "\(store.orders.count) поръчки")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(OPTheme.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(OPTheme.textTertiary)
+                    }
+                    .padding(14)
+                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+                }
+                .buttonStyle(PressableCardStyle())
+                .padding(.horizontal, OPTheme.screenPadding)
+                .padding(.bottom, 20)
+
                 // Public profile preview
                 NavigationLink(destination: OwnPublicProfileView()) {
                     HStack(spacing: 12) {
@@ -102,6 +138,11 @@ struct SettingsView: View {
                 .buttonStyle(PressableCardStyle())
                 .padding(.horizontal, OPTheme.screenPadding)
                 .padding(.bottom, 20)
+
+                // Payment card
+                paymentCardSection
+                    .padding(.horizontal, OPTheme.screenPadding)
+                    .padding(.bottom, 20)
 
                 servicesSection
                     .padding(.bottom, 20)
@@ -290,6 +331,85 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Payment Card
+
+    @State private var showCardEntry = false
+
+    private var paymentCardSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("ПЛАЩАНЕ")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(OPTheme.textSecondary)
+                .tracking(0.5)
+                .padding(.horizontal, 4)
+
+            if store.savedCardLast4.isEmpty {
+                Button { showCardEntry = true } label: {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(OPTheme.mintGradient)
+                            .frame(width: 36, height: 36)
+                            .overlay {
+                                Image(systemName: "creditcard.fill")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Добави карта")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(OPTheme.text)
+                            Text("За покупки и дарения")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(OPTheme.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(OPTheme.mint)
+                    }
+                    .padding(14)
+                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+                }
+                .buttonStyle(PressableCardStyle())
+            } else {
+                HStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(OPTheme.mintGradient)
+                        .frame(width: 36, height: 36)
+                        .overlay {
+                            Image(systemName: "creditcard.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Visa ****\(store.savedCardLast4)")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(OPTheme.text)
+                        Text("Запазена карта")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(OPTheme.success)
+                    }
+                    Spacer()
+                    Button {
+                        store.savedCardLast4 = ""
+                    } label: {
+                        Text("Премахни")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(OPTheme.danger)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(OPTheme.dangerSoft, in: Capsule())
+                    }
+                }
+                .padding(14)
+                .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.success.opacity(0.3), lineWidth: 1))
+            }
+        }
+        .sheet(isPresented: $showCardEntry) { CardEntrySheet() }
+    }
+
     // MARK: - Services Section
 
     private var servicesSection: some View {
@@ -323,6 +443,33 @@ struct SettingsView: View {
             .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
             .padding(.horizontal, OPTheme.screenPadding)
         }
+    }
+
+    // MARK: - Walk Offers Toggle
+
+    private var walkOffersToggle: some View {
+        @Bindable var store = store
+        return HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(OPTheme.sky.opacity(0.12))
+                .frame(width: 32, height: 32)
+                .overlay {
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(OPTheme.sky)
+                }
+            Toggle("Приемай предложения за разходки", isOn: $store.acceptsWalkOffers)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(OPTheme.text)
+                .tint(OPTheme.mint)
+        }
+        .padding(14)
+        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(OPTheme.border, lineWidth: 1)
+        )
+        .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
     }
 
     // MARK: - Logout

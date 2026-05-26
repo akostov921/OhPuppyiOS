@@ -94,6 +94,7 @@ let nearbyDogsData: [NearbyDog] = [
 
 struct PublicDogProfileView: View {
     let dog: NearbyDog
+    @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var isFollowing = false
     @State private var showMessageSent = false
@@ -102,6 +103,7 @@ struct PublicDogProfileView: View {
     @State private var selectedPhotoId: String = ""
     @State private var showPhotoDetail = false
     @State private var showChatRoom = false
+    @State private var showWalkOfferSheet = false
 
     private let gridPhotos = [
         "1543466835-00a7907e9de1", "1587300003388-59208cc962cb", "1561037404-61cd46aa615b",
@@ -119,6 +121,8 @@ struct PublicDogProfileView: View {
                     .padding(.bottom, 20)
                 actionButtons
                     .padding(.bottom, 24)
+                ownerSection
+                    .padding(.bottom, 24)
                 photoGrid
                     .padding(.bottom, 24)
                 infoSection
@@ -132,7 +136,7 @@ struct PublicDogProfileView: View {
         .alert("Playdate", isPresented: $showPlaydateConfirm) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Поканата за playdate е изпратена на @\(dog.ownerUsername)!")
+            Text("Поканата е изпратена на \(dog.name)! Ще получиш известие когато стопанинът потвърди.")
         }
         .alert("Съобщение", isPresented: $showMessageSent) {
             Button("OK", role: .cancel) { }
@@ -147,6 +151,9 @@ struct PublicDogProfileView: View {
         }
         .sheet(isPresented: $showPhotoDetail) {
             PhotoDetailSheet(photoId: selectedPhotoId)
+        }
+        .sheet(isPresented: $showWalkOfferSheet) {
+            WalkOfferSheet(dog: dog)
         }
         .navigationDestination(isPresented: $showChatRoom) {
             ChatRoomView(chat: ChatPreview(
@@ -388,6 +395,67 @@ struct PublicDogProfileView: View {
         .padding(.horizontal, OPTheme.screenPadding)
     }
 
+    // MARK: - Owner Section
+
+    @ViewBuilder
+    private var ownerSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            OPSectionHeader(title: "Стопанин")
+                .padding(.horizontal, OPTheme.screenPadding)
+
+            HStack(spacing: 14) {
+                Circle()
+                    .fill(OPTheme.mintGradient)
+                    .frame(width: 48, height: 48)
+                    .overlay {
+                        Text(String(dog.ownerName.prefix(1)))
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(dog.ownerName)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(OPTheme.text)
+                    Text("@\(dog.ownerUsername)")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(OPTheme.textSecondary)
+                }
+
+                Spacer()
+            }
+            .padding(14)
+            .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: OPTheme.cornerRadiusSmall, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: OPTheme.cornerRadiusSmall, style: .continuous)
+                    .stroke(OPTheme.border, lineWidth: 1)
+            )
+            .padding(.horizontal, OPTheme.screenPadding)
+
+            if store.activeRole == .walker {
+                Button {
+                    showWalkOfferSheet = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "figure.walk")
+                            .font(.system(size: 15, weight: .semibold))
+                        Text("Предложи разходка")
+                            .font(.system(size: 15, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .leading, endPoint: .trailing),
+                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    )
+                    .shadow(color: OPTheme.sky.opacity(0.3), radius: 8, y: 4)
+                }
+                .padding(.horizontal, OPTheme.screenPadding)
+            }
+        }
+    }
+
     // MARK: - Photo Grid
 
     private var photoGrid: some View {
@@ -479,6 +547,144 @@ struct PublicDogProfileView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(color.opacity(0.12), in: Capsule())
+    }
+}
+
+// MARK: - Walk Offer Sheet
+
+struct WalkOfferSheet: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    let dog: NearbyDog
+    @State private var duration = 60
+    @State private var price = "25"
+    @State private var note = ""
+    @State private var showSuccess = false
+
+    private let durations = [30, 45, 60, 90]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Dog + owner info
+                    HStack(spacing: 12) {
+                        DogAvatar(url: dog.photoURL, size: 52, showRing: true)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(dog.name)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(OPTheme.text)
+                            Text("Стопанин: \(dog.ownerName)")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(OPTheme.textSecondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(12)
+                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+
+                    // Duration picker
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Продължителност")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(OPTheme.text)
+                        HStack(spacing: 8) {
+                            ForEach(durations, id: \.self) { d in
+                                Button {
+                                    withAnimation(OPTheme.quickSpring) { duration = d }
+                                } label: {
+                                    Text("\(d) мин")
+                                        .font(.system(size: 14, weight: duration == d ? .bold : .medium))
+                                        .foregroundStyle(duration == d ? .white : OPTheme.text)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .background(
+                                            duration == d ? AnyShapeStyle(OPTheme.primaryGradient) : AnyShapeStyle(OPTheme.surfaceSunken),
+                                            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        )
+                                }
+                            }
+                        }
+                    }
+
+                    // Price
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Цена (лв)")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(OPTheme.text)
+                        TextField("25", text: $price)
+                            .font(.system(size: 16, weight: .medium))
+                            .keyboardType(.decimalPad)
+                            .padding(14)
+                            .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+
+                    // Note
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Бележка (по желание)")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(OPTheme.text)
+                        TextField("Имам опит с тази порода...", text: $note, axis: .vertical)
+                            .font(.system(size: 14))
+                            .lineLimit(2...4)
+                            .padding(12)
+                            .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+
+                    // Submit
+                    Button {
+                        let priceVal = Double(price) ?? 25.0
+                        let req = WalkRequest(
+                            id: store.newId(),
+                            walkerId: "self",
+                            walkerName: store.ownerName,
+                            walkerPhotoURL: nil,
+                            walkerBadge: store.currentWalkerBadge,
+                            dogId: dog.id,
+                            dogName: dog.name,
+                            date: Date().addingTimeInterval(3600),
+                            duration: duration,
+                            note: note,
+                            price: priceVal,
+                            status: .pending,
+                            createdAt: Date()
+                        )
+                        store.submitWalkOffer(req)
+                        showSuccess = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "paperplane.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Изпрати предложение")
+                                .font(.system(size: 17, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .leading, endPoint: .trailing),
+                            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        )
+                        .shadow(color: OPTheme.sky.opacity(0.3), radius: 8, y: 4)
+                    }
+                }
+                .padding(OPTheme.screenPadding)
+            }
+            .background(OPTheme.bg)
+            .navigationTitle("Предложи разходка")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отказ") { dismiss() }
+                }
+            }
+            .alert("Предложението е изпратено!", isPresented: $showSuccess) {
+                Button("OK") { dismiss() }
+            } message: {
+                Text("Стопанинът на \(dog.name) ще получи известие. Очаквай отговор скоро!")
+            }
+        }
     }
 }
 

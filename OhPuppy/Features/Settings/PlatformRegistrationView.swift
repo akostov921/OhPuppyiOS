@@ -4,6 +4,7 @@ import SwiftUI
 
 struct PlatformRegistrationView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppStore.self) private var store
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -17,36 +18,44 @@ struct PlatformRegistrationView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 12)
 
-                roleCard(
+                roleEntry(
+                    role: .vet,
                     icon: "stethoscope",
                     title: "Ветеринар",
                     description: "Верифицирай ваксини, обяви услуги и цени, управлявай пациенти",
+                    activeDescription: "Управлявай ценоразпис и пациенти",
                     gradient: LinearGradient(colors: [OPTheme.mint, Color(hex: "2D6A4F")], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    destination: VetRegistrationView()
+                    regDestination: AnyView(VetRegistrationView())
                 )
 
-                roleCard(
+                roleEntry(
+                    role: .brand,
                     icon: "bag.fill",
                     title: "Бранд",
                     description: "Качвай продукти, управлявай каталог, достигни хиляди собственици",
+                    activeDescription: "Управлявай продукти и каталог",
                     gradient: LinearGradient(colors: [OPTheme.accent, OPTheme.rose], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    destination: BrandRegistrationView()
+                    regDestination: AnyView(BrandRegistrationView())
                 )
 
-                roleCard(
+                roleEntry(
+                    role: .walker,
                     icon: "figure.walk",
                     title: "Разходчик",
                     description: "Предлагай разходки, задавай цени, получавай ревюта",
+                    activeDescription: "Виж точки, ревюта и статистика",
                     gradient: LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    destination: WalkerRegistrationInfoView()
+                    regDestination: AnyView(WalkerRegistrationInfoView())
                 )
 
-                roleCard(
+                roleEntry(
+                    role: .shelter,
                     icon: "building.2.fill",
                     title: "Приют",
                     description: "Регистрирай кучета за осиновяване, получавай дарения",
+                    activeDescription: "Управлявай кучета и дарения",
                     gradient: LinearGradient(colors: [OPTheme.rose, OPTheme.accent], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    destination: ShelterRegistrationView()
+                    regDestination: AnyView(ShelterRegistrationView())
                 )
             }
             .padding(.horizontal, OPTheme.screenPadding)
@@ -57,43 +66,70 @@ struct PlatformRegistrationView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func roleCard<D: View>(icon: String, title: String, description: String, gradient: LinearGradient, destination: D) -> some View {
-        NavigationLink(destination: destination) {
-            HStack(spacing: 14) {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(gradient)
-                    .frame(width: 56, height: 56)
-                    .overlay {
-                        Image(systemName: icon)
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
+    private func roleEntry(role: UserRole, icon: String, title: String, description: String, activeDescription: String, gradient: LinearGradient, regDestination: AnyView) -> some View {
+        let isRegistered = store.registeredRoles.contains(role)
 
-                VStack(alignment: .leading, spacing: 4) {
+        return Group {
+            if isRegistered {
+                Button {
+                    withAnimation(OPTheme.quickSpring) { store.activeRole = role }
+                } label: {
+                    roleCardContent(icon: icon, title: title, description: activeDescription, gradient: gradient, isRegistered: true)
+                }
+                .buttonStyle(PressableCardStyle())
+            } else {
+                NavigationLink(destination: regDestination) {
+                    roleCardContent(icon: icon, title: title, description: description, gradient: gradient, isRegistered: false)
+                }
+                .buttonStyle(PressableCardStyle())
+            }
+        }
+    }
+
+    private func roleCardContent(icon: String, title: String, description: String, gradient: LinearGradient, isRegistered: Bool) -> some View {
+        HStack(spacing: 14) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(gradient)
+                .frame(width: 56, height: 56)
+                .overlay {
+                    Image(systemName: icon)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
                     Text(title)
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(OPTheme.text)
-                    Text(description)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(OPTheme.textSecondary)
-                        .lineLimit(2)
+                    if isRegistered {
+                        Text("Активен")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(OPTheme.success)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(OPTheme.successSoft, in: Capsule())
+                    }
                 }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(OPTheme.textTertiary)
+                Text(description)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(OPTheme.textSecondary)
+                    .lineLimit(2)
             }
-            .padding(16)
-            .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(OPTheme.border, lineWidth: 1)
-            )
-            .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
+
+            Spacer()
+
+            Image(systemName: isRegistered ? "arrow.right.arrow.left" : "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(OPTheme.textTertiary)
         }
-        .buttonStyle(PressableCardStyle())
+        .padding(16)
+        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(isRegistered ? OPTheme.success.opacity(0.3) : OPTheme.border, lineWidth: 1)
+        )
+        .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
     }
 }
 
@@ -101,6 +137,7 @@ struct PlatformRegistrationView: View {
 
 struct VetRegistrationView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppStore.self) private var store
     @State private var name = ""
     @State private var clinic = ""
     @State private var phone = ""
@@ -151,7 +188,7 @@ struct VetRegistrationView: View {
                         .foregroundStyle(OPTheme.textTertiary)
                 }
 
-                Button { showSuccess = true } label: {
+                Button { showSuccess = true; store.registerRole(.vet) } label: {
                     Text("Изпрати заявка")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.white)
@@ -171,7 +208,7 @@ struct VetRegistrationView: View {
         .alert("Заявката е изпратена!", isPresented: $showSuccess) {
             Button("OK") { dismiss() }
         } message: {
-            Text("Ще проверим лиценза и ще ви одобрим до 48 часа. Ще получите известие.")
+            Text("Одобрен! Вече можеш да управляваш услугите си.")
         }
     }
 }
@@ -180,6 +217,7 @@ struct VetRegistrationView: View {
 
 struct BrandRegistrationView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppStore.self) private var store
     @State private var brandName = ""
     @State private var website = ""
     @State private var contactEmail = ""
@@ -229,7 +267,7 @@ struct BrandRegistrationView: View {
                     }
                 }
 
-                Button { showSuccess = true } label: {
+                Button { showSuccess = true; store.registerRole(.brand) } label: {
                     Text("Изпрати заявка")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.white)
@@ -249,7 +287,7 @@ struct BrandRegistrationView: View {
         .alert("Заявката е изпратена!", isPresented: $showSuccess) {
             Button("OK") { dismiss() }
         } message: {
-            Text("Ще разгледаме бранда ви и ще одобрим до 72 часа.")
+            Text("Одобрен! Вече можеш да качваш продукти.")
         }
     }
 }
@@ -257,6 +295,10 @@ struct BrandRegistrationView: View {
 // MARK: - Walker Registration Info
 
 struct WalkerRegistrationInfoView: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var showSuccess = false
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -269,7 +311,7 @@ struct WalkerRegistrationInfoView: View {
                     Text("Стани разходчик")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(OPTheme.text)
-                    Text("Вече можеш да кандидатстваш от раздел Карта → Разходчици")
+                    Text("Разхождай кучета, печели точки и рейтинг")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(OPTheme.textSecondary)
                         .multilineTextAlignment(.center)
@@ -281,13 +323,15 @@ struct WalkerRegistrationInfoView: View {
                     benefitRow(icon: "star.fill", text: "Събирай ревюта и рейтинг")
                     benefitRow(icon: "map.fill", text: "Появявай се на картата")
                     benefitRow(icon: "bell.fill", text: "Получавай заявки директно")
+                    benefitRow(icon: "trophy.fill", text: "+10 точки за всяка разходка")
+                    benefitRow(icon: "crown.fill", text: "5 нива: Начинаещ → Легенда")
                 }
                 .padding(20)
                 .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
 
-                NavigationLink(destination: DogWalkerView()) {
-                    Text("Отиди на Разходчици")
+                Button { showSuccess = true; store.registerRole(.walker) } label: {
+                    Text("Активирай профил на разходчик")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -303,6 +347,11 @@ struct WalkerRegistrationInfoView: View {
         .background(OPTheme.bg)
         .navigationTitle("Разходчик")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Профилът е активиран!", isPresented: $showSuccess) {
+            Button("OK") { dismiss() }
+        } message: {
+            Text("Вече си разходчик! Виж панела си за точки и ревюта.")
+        }
     }
 
     private func benefitRow(icon: String, text: String) -> some View {
@@ -322,6 +371,7 @@ struct WalkerRegistrationInfoView: View {
 
 struct ShelterRegistrationView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppStore.self) private var store
     @State private var shelterName = ""
     @State private var location = ""
     @State private var phone = ""
@@ -350,7 +400,7 @@ struct ShelterRegistrationView: View {
                 regField("Град / Адрес", text: $location, placeholder: "София, ул. Примерна 1", icon: "mappin.and.ellipse")
                 regField("Телефон", text: $phone, placeholder: "+359 88 123 4567", icon: "phone.fill")
 
-                Button { showSuccess = true } label: {
+                Button { showSuccess = true; store.registerRole(.shelter) } label: {
                     Text("Изпрати заявка")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.white)
@@ -370,10 +420,10 @@ struct ShelterRegistrationView: View {
         .background(OPTheme.bg)
         .navigationTitle("Приют")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Заявката е изпратена!", isPresented: $showSuccess) {
+        .alert("Приютът е регистриран!", isPresented: $showSuccess) {
             Button("OK") { dismiss() }
         } message: {
-            Text("Ще се свържем с вас до 48 часа за потвърждение.")
+            Text("Одобрен! Вече можеш да качваш кучета за осиновяване.")
         }
     }
 }

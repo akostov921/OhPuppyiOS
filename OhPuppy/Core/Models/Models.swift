@@ -87,13 +87,23 @@ enum HomeSection: String, CaseIterable, Codable {
 }
 
 enum UserRole: String, CaseIterable, Codable {
-    case owner, vet, brand, walker
+    case owner, vet, brand, walker, shelter
     var label: String {
         switch self {
         case .owner: "Собственик"
         case .vet: "Ветеринар"
         case .brand: "Бранд"
         case .walker: "Разходчик"
+        case .shelter: "Приют"
+        }
+    }
+    var icon: String {
+        switch self {
+        case .owner: "house.fill"
+        case .vet: "stethoscope"
+        case .brand: "bag.fill"
+        case .walker: "figure.walk"
+        case .shelter: "building.2.fill"
         }
     }
 }
@@ -310,4 +320,283 @@ struct WalkerApplication: Identifiable, Codable {
             }
         }
     }
+}
+
+// MARK: - Platform Business Models
+
+enum ApprovalStatus: String, CaseIterable, Codable {
+    case pending, approved, rejected
+    var label: String {
+        switch self {
+        case .pending: "В изчакване"
+        case .approved: "Одобрен"
+        case .rejected: "Отхвърлен"
+        }
+    }
+}
+
+struct VetService: Identifiable, Codable, Hashable {
+    let id: String
+    var name: String
+    var price: Double
+    var duration: String
+    var category: VetServiceCategory
+}
+
+enum VetServiceCategory: String, CaseIterable, Codable {
+    case exam, vaccination, surgery, dental, grooming, lab
+    var label: String {
+        switch self {
+        case .exam: "Преглед"
+        case .vaccination: "Ваксинация"
+        case .surgery: "Хирургия"
+        case .dental: "Зъболечение"
+        case .grooming: "Грижа"
+        case .lab: "Лаборатория"
+        }
+    }
+    var icon: String {
+        switch self {
+        case .exam: "stethoscope"
+        case .vaccination: "syringe.fill"
+        case .surgery: "scissors"
+        case .dental: "mouth.fill"
+        case .grooming: "sparkles"
+        case .lab: "testtube.2"
+        }
+    }
+}
+
+struct BrandProduct: Identifiable, Codable {
+    let id: String
+    var name: String
+    var price: Double
+    var category: String
+    var status: ApprovalStatus
+    var submittedAt: Date
+}
+
+struct ShelterAnimal: Identifiable, Codable {
+    let id: String
+    var name: String
+    var breed: String
+    var age: String
+    var sex: Dog.Sex
+    var description: String
+    var photoURL: URL?
+    var isAdopted: Bool
+    var addedAt: Date
+}
+
+struct WalkerDashReview: Identifiable, Codable {
+    let id: String
+    var clientName: String
+    var dogName: String
+    var rating: Int
+    var comment: String
+    var date: Date
+}
+
+enum WalkerBadge: String, CaseIterable, Codable {
+    case newcomer, reliable, popular, expert, legend
+    var label: String {
+        switch self {
+        case .newcomer: "Начинаещ"
+        case .reliable: "Надежден"
+        case .popular: "Популярен"
+        case .expert: "Експерт"
+        case .legend: "Легенда"
+        }
+    }
+    var icon: String {
+        switch self {
+        case .newcomer: "leaf.fill"
+        case .reliable: "hand.thumbsup.fill"
+        case .popular: "star.fill"
+        case .expert: "crown.fill"
+        case .legend: "trophy.fill"
+        }
+    }
+    var minPoints: Int {
+        switch self {
+        case .newcomer: 0
+        case .reliable: 100
+        case .popular: 300
+        case .expert: 750
+        case .legend: 1500
+        }
+    }
+}
+
+// MARK: - Walk Request
+
+enum WalkStatus: String, Codable {
+    case pending, accepted, inProgress, completed, confirmed
+    var label: String {
+        switch self {
+        case .pending: "Изчакване"
+        case .accepted: "Приета"
+        case .inProgress: "В ход"
+        case .completed: "Завършена"
+        case .confirmed: "Потвърдена"
+        }
+    }
+}
+
+struct WalkRequest: Identifiable, Codable, Hashable {
+    let id: String
+    var walkerId: String
+    var walkerName: String
+    var walkerPhotoURL: String?
+    var walkerBadge: WalkerBadge
+    var dogId: String
+    var dogName: String
+    var date: Date
+    var duration: Int
+    var note: String
+    var price: Double
+    var status: WalkStatus
+    var createdAt: Date
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    static func == (lhs: WalkRequest, rhs: WalkRequest) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+// MARK: - Vet Appointment
+
+enum AppointmentStatus: String, Codable {
+    case upcoming, completed, cancelled
+    var label: String {
+        switch self {
+        case .upcoming: "Предстоящ"
+        case .completed: "Завършен"
+        case .cancelled: "Отменен"
+        }
+    }
+}
+
+struct VetAppointment: Identifiable, Codable {
+    let id: String
+    var vetName: String
+    var clinicName: String
+    var serviceName: String
+    var dogId: String
+    var dogName: String
+    var date: Date
+    var notes: String
+    var status: AppointmentStatus
+    var price: Double
+    var createdAt: Date
+}
+
+// MARK: - Order
+
+enum OrderStatus: String, Codable {
+    case processing, shipped, delivered
+    var label: String {
+        switch self {
+        case .processing: "Обработва се"
+        case .shipped: "Изпратена"
+        case .delivered: "Доставена"
+        }
+    }
+}
+
+struct Order: Identifiable, Codable {
+    let id: String
+    var productName: String
+    var brandName: String
+    var price: Double
+    var date: Date
+    var status: OrderStatus
+    var trackingNumber: String
+    var photoURL: String
+}
+
+// MARK: - Walker Earning
+
+enum EarningStatus: String, Codable {
+    case held, available, withdrawn
+    var label: String {
+        switch self {
+        case .held: "Задържана"
+        case .available: "Налична"
+        case .withdrawn: "Изтеглена"
+        }
+    }
+}
+
+struct WalkerEarning: Identifiable, Codable {
+    let id: String
+    var walkRequestId: String
+    var clientName: String
+    var dogName: String
+    var amount: Double
+    var status: EarningStatus
+    var date: Date
+}
+
+// MARK: - Brand Order
+
+enum BrandOrderStatus: String, CaseIterable, Codable {
+    case new, processing, shipped, delivered
+    var label: String {
+        switch self {
+        case .new: "Нова"
+        case .processing: "Обработва се"
+        case .shipped: "Изпратена"
+        case .delivered: "Доставена"
+        }
+    }
+}
+
+struct BrandOrder: Identifiable, Codable {
+    let id: String
+    var productId: String
+    var productName: String
+    var buyerName: String
+    var quantity: Int
+    var totalPrice: Double
+    var status: BrandOrderStatus
+    var orderedAt: Date
+}
+
+// MARK: - Adoption Request
+
+enum AdoptionRequestStatus: String, CaseIterable, Codable {
+    case pending, approved, rejected
+    var label: String {
+        switch self {
+        case .pending: "В изчакване"
+        case .approved: "Одобрена"
+        case .rejected: "Отказана"
+        }
+    }
+}
+
+struct AdoptionRequest: Identifiable, Codable {
+    let id: String
+    var animalId: String
+    var animalName: String
+    var requesterName: String
+    var requesterPhone: String
+    var requesterNote: String
+    var status: AdoptionRequestStatus
+    var submittedAt: Date
+}
+
+// MARK: - Donation
+
+struct Donation: Identifiable, Codable {
+    let id: String
+    var donorName: String
+    var amount: Double
+    var isRecurring: Bool
+    var date: Date
+    var note: String?
 }

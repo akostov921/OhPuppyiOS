@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>OhPuppy използва локацията ти, за да покаже кучета и паркове наблизо.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>OhPuppy има нужда от достъп до снимките ти, за да добавиш снимка на кучето си.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>OhPuppy използва камерата за снимки на кучето ти.</string>
+</dict>
+</plist>

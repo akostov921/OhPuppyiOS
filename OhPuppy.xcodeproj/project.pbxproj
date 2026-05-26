@@ -13,6 +13,7 @@
 		1947D00FE715F1A16AA36BBB /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 687ADB0D044EEC18770F86A5 /* OnboardingView.swift */; };
 		2703B78860311C356505800D /* EventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350350892AD2BBE520840B54 /* EventsView.swift */; };
 		2752FCA3F07864B74699C9EA /* PlaydateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09F3259603CB6897F6EF587E /* PlaydateView.swift */; };
+		83B8878A45264E6B9D405F4E /* WalkerProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32D478E49134401280AFD3E4 /* WalkerProfileView.swift */; };
 		2CE681F78D812020E2819022 /* PublicDogProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F52F6575CA31B5A1247A12 /* PublicDogProfileView.swift */; };
 		2D82FEB76B7C227EFC2C627A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 71B1E428D0C4ED0521B742EB /* Assets.xcassets */; };
 		2EE4FCC7FF119EF75A8931E8 /* DogProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BAA5499866689C82B955308 /* DogProfileView.swift */; };
@@ -20,6 +21,11 @@
 		3D96C6CE5171B65190B95516 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F5ABAD4B64B04BF2A92025D /* SignInView.swift */; };
 		535C207F707CCAF6AE3C7367 /* OhPuppyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40DE1C57A0039F3A5A228D61 /* OhPuppyApp.swift */; };
 		54B98F7D4094D39D9386B1EA /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B840E75F25909FC3D8D7C42C /* RootView.swift */; };
+		81104D0147E54028BE4782DC /* ShelterViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC4217EB88FE41268A53241A /* ShelterViews.swift */; };
+		5A47EFA408B44363B4565627 /* BrandViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF8BEBF385EE4555926C188D /* BrandViews.swift */; };
+		4FFF02C9900C4987868E7E6B /* WalkerViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8261E334116A44098A4D6C38 /* WalkerViews.swift */; };
+		32C222D7BD1C45C495028224 /* VetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F2F86EE27B469EA6FDC687 /* VetViews.swift */; };
+		18B1FED074B24F12AC6B3554 /* OwnerTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 457535E7C08F4306BFE08BF9 /* OwnerTabView.swift */; };
 		5A83DE3F171C59D4AF970C19 /* EditDogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F15CC57B99C6737349C122 /* EditDogView.swift */; };
 		5ABDFB3070B62881CB4D11C2 /* AddDogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9049C2F8FC3C3AE9D6CBFA9A /* AddDogView.swift */; };
 		61F5C6408329A2A20512F911 /* DogWalkerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB4B5D807E78B4E8C08751D8 /* DogWalkerView.swift */; };
@@ -49,12 +55,15 @@
 		7AFD40B7DE7B4FD085A6FBE5 /* OwnPublicProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E609FF01F64F4AA68B6EE7EF /* OwnPublicProfileView.swift */; };
 		2EC28EB9989D4489B699D1C2 /* SheltersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FE9BFEFCCDC45D8A910DDFF /* SheltersView.swift */; };
 		89F6AF6A993E46829055D1C8 /* PlatformRegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586064F3D42C4C189125E13D /* PlatformRegistrationView.swift */; };
+		6426CC943FD84E96A6B6BAE0 /* DashboardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55601891DE3A43D5A6B78667 /* DashboardViews.swift */; };
+		087710028FE942E2B40D8EC0 /* OrderHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD37A4BEA98C4DE086F6DA8E /* OrderHistoryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		01B5D88B5B1210DF44E9DE20 /* MilestonesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MilestonesView.swift; sourceTree = "<group>"; };
 		02C81F4FE7127B926308A09E /* GroomingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroomingView.swift; sourceTree = "<group>"; };
 		09F3259603CB6897F6EF587E /* PlaydateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaydateView.swift; sourceTree = "<group>"; };
+		32D478E49134401280AFD3E4 /* WalkerProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerProfileView.swift; sourceTree = "<group>"; };
 		0F5ABAD4B64B04BF2A92025D /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		18F52F6575CA31B5A1247A12 /* PublicDogProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicDogProfileView.swift; sourceTree = "<group>"; };
 		243B73CCA3C1D0F487A73304 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -82,6 +91,11 @@
 		AC7C48B4BA2B27BE8350399E /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		B12DF48A55C5AD1E71423318 /* HealthScoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthScoreView.swift; sourceTree = "<group>"; };
 		B840E75F25909FC3D8D7C42C /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		EC4217EB88FE41268A53241A /* ShelterViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelterViews.swift; sourceTree = "<group>"; };
+		DF8BEBF385EE4555926C188D /* BrandViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandViews.swift; sourceTree = "<group>"; };
+		8261E334116A44098A4D6C38 /* WalkerViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkerViews.swift; sourceTree = "<group>"; };
+		D2F2F86EE27B469EA6FDC687 /* VetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VetViews.swift; sourceTree = "<group>"; };
+		457535E7C08F4306BFE08BF9 /* OwnerTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnerTabView.swift; sourceTree = "<group>"; };
 		BD69E770B95B830C1E0FA224 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
 		CC0266DA5C8C8B09BBB527AC /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
 		CCA6FCDED2CEB5AEBEB4AA47 /* PlacesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacesView.swift; sourceTree = "<group>"; };
@@ -95,6 +109,8 @@
 		E609FF01F64F4AA68B6EE7EF /* OwnPublicProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnPublicProfileView.swift; sourceTree = "<group>"; };
 		3FE9BFEFCCDC45D8A910DDFF /* SheltersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheltersView.swift; sourceTree = "<group>"; };
 		586064F3D42C4C189125E13D /* PlatformRegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformRegistrationView.swift; sourceTree = "<group>"; };
+		55601891DE3A43D5A6B78667 /* DashboardViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViews.swift; sourceTree = "<group>"; };
+		CD37A4BEA98C4DE086F6DA8E /* OrderHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderHistoryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -155,6 +171,8 @@
 			children = (
 				243B73CCA3C1D0F487A73304 /* SettingsView.swift */,
 				586064F3D42C4C189125E13D /* PlatformRegistrationView.swift */,
+				55601891DE3A43D5A6B78667 /* DashboardViews.swift */,
+				CD37A4BEA98C4DE086F6DA8E /* OrderHistoryView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -189,6 +207,11 @@
 			children = (
 				40DE1C57A0039F3A5A228D61 /* OhPuppyApp.swift */,
 				B840E75F25909FC3D8D7C42C /* RootView.swift */,
+				EC4217EB88FE41268A53241A /* ShelterViews.swift */,
+				DF8BEBF385EE4555926C188D /* BrandViews.swift */,
+				8261E334116A44098A4D6C38 /* WalkerViews.swift */,
+				D2F2F86EE27B469EA6FDC687 /* VetViews.swift */,
+				457535E7C08F4306BFE08BF9 /* OwnerTabView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -256,6 +279,7 @@
 				CC0266DA5C8C8B09BBB527AC /* MapView.swift */,
 				CCA6FCDED2CEB5AEBEB4AA47 /* PlacesView.swift */,
 				09F3259603CB6897F6EF587E /* PlaydateView.swift */,
+				32D478E49134401280AFD3E4 /* WalkerProfileView.swift */,
 				18F52F6575CA31B5A1247A12 /* PublicDogProfileView.swift */,
 				E609FF01F64F4AA68B6EE7EF /* OwnPublicProfileView.swift */,
 				DC7858535993E924D5B29FE2 /* StoriesView.swift */,
@@ -396,6 +420,8 @@
 				5ABDFB3070B62881CB4D11C2 /* AddDogView.swift in Sources */,
 				42757F63047A4BE4BF47CCF2 /* MarketplaceView.swift in Sources */,
 				89F6AF6A993E46829055D1C8 /* PlatformRegistrationView.swift in Sources */,
+				6426CC943FD84E96A6B6BAE0 /* DashboardViews.swift in Sources */,
+				087710028FE942E2B40D8EC0 /* OrderHistoryView.swift in Sources */,
 				2EC28EB9989D4489B699D1C2 /* SheltersView.swift in Sources */,
 				7AFD40B7DE7B4FD085A6FBE5 /* OwnPublicProfileView.swift in Sources */,
 				B414EE61446AD3318181909A /* AppStore.swift in Sources */,
@@ -424,8 +450,14 @@
 				1947D00FE715F1A16AA36BBB /* OnboardingView.swift in Sources */,
 				CFAFFD2EDC5CEED357833173 /* PlacesView.swift in Sources */,
 				2752FCA3F07864B74699C9EA /* PlaydateView.swift in Sources */,
+				83B8878A45264E6B9D405F4E /* WalkerProfileView.swift in Sources */,
 				2CE681F78D812020E2819022 /* PublicDogProfileView.swift in Sources */,
 				54B98F7D4094D39D9386B1EA /* RootView.swift in Sources */,
+				81104D0147E54028BE4782DC /* ShelterViews.swift in Sources */,
+				5A47EFA408B44363B4565627 /* BrandViews.swift in Sources */,
+				4FFF02C9900C4987868E7E6B /* WalkerViews.swift in Sources */,
+				32C222D7BD1C45C495028224 /* VetViews.swift in Sources */,
+				18B1FED074B24F12AC6B3554 /* OwnerTabView.swift in Sources */,
 				870226A94482561B9795D7AB /* SettingsView.swift in Sources */,
 				EFB423B8D304172D0B9044E2 /* SharedComponents.swift in Sources */,
 				3D96C6CE5171B65190B95516 /* SignInView.swift in Sources */,

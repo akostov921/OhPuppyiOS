@@ -78,6 +78,20 @@ private struct SavedState: Codable {
     var stories: [Story]
     var currentDogStatus: SavedDogStatus?
     var walkerApplication: WalkerApplication?
+    var registeredRoles: [UserRole]?
+    var vetServices: [VetService]?
+    var brandProducts: [BrandProduct]?
+    var shelterAnimals: [ShelterAnimal]?
+    var walkerPoints: Int?
+    var walkerWalksCount: Int?
+    var walkerReviews: [WalkerDashReview]?
+    var walkRequests: [WalkRequest]?
+    var walkerEarnings: [WalkerEarning]?
+    var vetAppointments: [VetAppointment]?
+    var orders: [Order]?
+    var brandOrders: [BrandOrder]?
+    var adoptionRequests: [AdoptionRequest]?
+    var shelterDonations: [Donation]?
     var nextId: Int
 }
 
@@ -152,6 +166,18 @@ final class AppStore {
     var showOnMap: Bool {
         didSet { UserDefaults.standard.set(showOnMap, forKey: "showOnMap") }
     }
+    var activeRole: UserRole {
+        didSet { UserDefaults.standard.set(activeRole.rawValue, forKey: "activeRole") }
+    }
+    var savedCardLast4: String {
+        didSet { UserDefaults.standard.set(savedCardLast4, forKey: "savedCardLast4") }
+    }
+    var savedDeliveryAddress: String {
+        didSet { UserDefaults.standard.set(savedDeliveryAddress, forKey: "savedDeliveryAddress") }
+    }
+    var acceptsWalkOffers: Bool {
+        didSet { UserDefaults.standard.set(acceptsWalkOffers, forKey: "acceptsWalkOffers") }
+    }
 
     var userEvents: [DogEvent] = []
     var stories: [Story]
@@ -164,6 +190,36 @@ final class AppStore {
                 UserDefaults.standard.set(data, forKey: "homeSectionOrder")
             }
         }
+    }
+
+    var registeredRoles: Set<UserRole> = []
+    var vetServices: [VetService] = []
+    var brandProducts: [BrandProduct] = []
+    var shelterAnimals: [ShelterAnimal] = []
+    var walkerPoints: Int = 0
+    var walkerWalksCount: Int = 0
+    var walkerReviews: [WalkerDashReview] = []
+
+    var walkRequests: [WalkRequest] = []
+    var walkerEarnings: [WalkerEarning] = []
+    var vetAppointments: [VetAppointment] = []
+    var orders: [Order] = []
+    var brandOrders: [BrandOrder] = []
+    var adoptionRequests: [AdoptionRequest] = []
+    var shelterDonations: [Donation] = []
+
+    var upcomingWalks: [WalkRequest] { walkRequests.filter { $0.status == .accepted } }
+    var completedWalks: [WalkRequest] { walkRequests.filter { $0.status == .completed } }
+    var walkerTotalEarned: Double { walkerEarnings.reduce(0) { $0 + $1.amount } }
+    var walkerPendingEarnings: Double { walkerEarnings.filter { $0.status == .held }.reduce(0) { $0 + $1.amount } }
+    var walkerAvailableEarnings: Double { walkerEarnings.filter { $0.status == .available }.reduce(0) { $0 + $1.amount } }
+
+    var currentWalkerBadge: WalkerBadge {
+        WalkerBadge.allCases.last(where: { walkerPoints >= $0.minPoints }) ?? .newcomer
+    }
+
+    var nextWalkerBadge: WalkerBadge? {
+        WalkerBadge.allCases.first(where: { $0.minPoints > walkerPoints })
     }
 
     private var nextId = 100
@@ -183,6 +239,10 @@ final class AppStore {
         self.isDarkMode = defaults.bool(forKey: "isDarkMode")
         self.language = defaults.string(forKey: "language") ?? "bg"
         self.showOnMap = defaults.object(forKey: "showOnMap") == nil ? true : defaults.bool(forKey: "showOnMap")
+        self.activeRole = UserRole(rawValue: defaults.string(forKey: "activeRole") ?? "owner") ?? .owner
+        self.savedCardLast4 = defaults.string(forKey: "savedCardLast4") ?? ""
+        self.savedDeliveryAddress = defaults.string(forKey: "savedDeliveryAddress") ?? ""
+        self.acceptsWalkOffers = defaults.bool(forKey: "acceptsWalkOffers")
         self.locationPrecision = LocationPrecision(rawValue: defaults.string(forKey: "locationPrecision") ?? "Точна") ?? .exact
 
         if let sectionData = defaults.data(forKey: "homeSectionOrder"),
@@ -218,6 +278,20 @@ final class AppStore {
                 self.currentDogStatus = (dogId: s.dogId, statusId: s.statusId, setAt: s.setAt)
             }
             self.walkerApplication = state.walkerApplication
+            self.registeredRoles = Set(state.registeredRoles ?? [])
+            self.vetServices = state.vetServices ?? []
+            self.brandProducts = state.brandProducts ?? []
+            self.shelterAnimals = state.shelterAnimals ?? []
+            self.walkerPoints = state.walkerPoints ?? 0
+            self.walkerWalksCount = state.walkerWalksCount ?? 0
+            self.walkerReviews = state.walkerReviews ?? []
+            self.walkRequests = state.walkRequests ?? []
+            self.walkerEarnings = state.walkerEarnings ?? []
+            self.vetAppointments = state.vetAppointments ?? []
+            self.orders = state.orders ?? []
+            self.brandOrders = state.brandOrders ?? []
+            self.adoptionRequests = state.adoptionRequests ?? []
+            self.shelterDonations = state.shelterDonations ?? []
         } else {
             let cal = Calendar.current
             self.dogs = [
@@ -309,6 +383,20 @@ final class AppStore {
             stories: stories,
             currentDogStatus: savedStatus,
             walkerApplication: walkerApplication,
+            registeredRoles: Array(registeredRoles),
+            vetServices: vetServices,
+            brandProducts: brandProducts,
+            shelterAnimals: shelterAnimals,
+            walkerPoints: walkerPoints,
+            walkerWalksCount: walkerWalksCount,
+            walkerReviews: walkerReviews,
+            walkRequests: walkRequests,
+            walkerEarnings: walkerEarnings,
+            vetAppointments: vetAppointments,
+            orders: orders,
+            brandOrders: brandOrders,
+            adoptionRequests: adoptionRequests,
+            shelterDonations: shelterDonations,
             nextId: nextId
         )
         if let data = try? JSONEncoder().encode(state) {
@@ -669,6 +757,235 @@ final class AppStore {
             let request = UNNotificationRequest(identifier: "vaccine_\(vaccine.id)", content: content, trigger: trigger)
             center.add(request)
         }
+    }
+
+    // MARK: - Platform Roles
+
+    func registerRole(_ role: UserRole) {
+        registeredRoles.insert(role)
+        switch role {
+        case .vet: seedVetData()
+        case .brand: seedBrandData()
+        case .walker: seedWalkerData()
+        case .shelter: seedShelterData()
+        case .owner: break
+        }
+        save()
+    }
+
+    func addVetService(_ service: VetService) { vetServices.append(service); save() }
+    func removeVetService(id: String) { vetServices.removeAll { $0.id == id }; save() }
+
+    func addBrandProduct(_ product: BrandProduct) { brandProducts.append(product); save() }
+    func removeBrandProduct(id: String) { brandProducts.removeAll { $0.id == id }; save() }
+
+    func addShelterAnimal(_ animal: ShelterAnimal) { shelterAnimals.append(animal); save() }
+    func removeShelterAnimal(id: String) { shelterAnimals.removeAll { $0.id == id }; save() }
+
+    func addWalkerPoints(_ pts: Int) { walkerPoints += pts; save() }
+
+    // MARK: - Walk Requests
+
+    func submitWalkRequest(_ req: WalkRequest) {
+        walkRequests.append(req)
+        save()
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            if let i = walkRequests.firstIndex(where: { $0.id == req.id }) {
+                walkRequests[i].status = .accepted
+                save()
+            }
+        }
+    }
+
+    func submitWalkOffer(_ req: WalkRequest) {
+        walkRequests.append(req)
+        save()
+        // Auto-accept after 3 seconds (simulating owner accepting)
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            if let i = walkRequests.firstIndex(where: { $0.id == req.id }) {
+                walkRequests[i].status = .accepted
+                save()
+            }
+        }
+    }
+
+    func completeWalk(id: String) {
+        guard let i = walkRequests.firstIndex(where: { $0.id == id }) else { return }
+        walkRequests[i].status = .completed
+        let req = walkRequests[i]
+        walkerEarnings.append(WalkerEarning(id: newId(), walkRequestId: req.id, clientName: ownerName, dogName: req.dogName, amount: req.price, status: .held, date: Date()))
+        save()
+    }
+
+    func confirmWalkDone(id: String) {
+        guard let i = walkRequests.firstIndex(where: { $0.id == id }) else { return }
+        walkRequests[i].status = .confirmed
+        if let ei = walkerEarnings.firstIndex(where: { $0.walkRequestId == id }) {
+            walkerEarnings[ei].status = .available
+        }
+        walkerPoints += 10
+        walkerWalksCount += 1
+        save()
+    }
+
+    func submitWalkReview(walkId: String, walkerId: String, rating: Int, comment: String) {
+        let review = WalkerDashReview(id: newId(), clientName: ownerName, dogName: walkRequests.first(where: { $0.id == walkId })?.dogName ?? "", rating: rating, comment: comment, date: Date())
+        walkerReviews.append(review)
+        save()
+    }
+
+    func withdrawEarnings() {
+        for i in walkerEarnings.indices where walkerEarnings[i].status == .available {
+            walkerEarnings[i].status = .withdrawn
+        }
+        save()
+    }
+
+    // MARK: - Vet Appointments
+
+    func submitVetAppointment(_ appt: VetAppointment) {
+        vetAppointments.append(appt)
+        save()
+    }
+
+    func cancelVetAppointment(id: String) {
+        if let i = vetAppointments.firstIndex(where: { $0.id == id }) {
+            vetAppointments[i].status = .cancelled
+        }
+        save()
+    }
+
+    // MARK: - Orders
+
+    // MARK: - Brand Orders
+
+    func updateBrandOrderStatus(id: String, status: BrandOrderStatus) {
+        if let i = brandOrders.firstIndex(where: { $0.id == id }) {
+            brandOrders[i].status = status
+            save()
+        }
+    }
+
+    // MARK: - Adoption
+
+    func approveAdoptionRequest(id: String) {
+        if let i = adoptionRequests.firstIndex(where: { $0.id == id }) {
+            adoptionRequests[i].status = .approved
+            if let ai = shelterAnimals.firstIndex(where: { $0.id == adoptionRequests[i].animalId }) {
+                shelterAnimals[ai].isAdopted = true
+            }
+            save()
+        }
+    }
+
+    func rejectAdoptionRequest(id: String) {
+        if let i = adoptionRequests.firstIndex(where: { $0.id == id }) {
+            adoptionRequests[i].status = .rejected
+            save()
+        }
+    }
+
+    func addDonation(_ donation: Donation) { shelterDonations.append(donation); save() }
+
+    // MARK: - Orders
+
+    func placeOrder(_ order: Order) {
+        orders.append(order)
+        save()
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            if let i = orders.firstIndex(where: { $0.id == order.id }) {
+                orders[i].status = .shipped
+                save()
+            }
+            try? await Task.sleep(for: .seconds(5))
+            if let i = orders.firstIndex(where: { $0.id == order.id }) {
+                orders[i].status = .delivered
+                save()
+            }
+        }
+    }
+    func completeWalk() { walkerWalksCount += 1; walkerPoints += 10; save() }
+
+    private func seedVetData() {
+        guard vetServices.isEmpty else { return }
+        let cal = Calendar.current
+        vetAppointments = [
+            VetAppointment(id: newId(), vetName: ownerName, clinicName: "Клиника Лапа", serviceName: "Първичен преглед", dogId: "1", dogName: "Рекс", date: cal.date(byAdding: .day, value: 1, to: Date())!, notes: "Годишен преглед", status: .upcoming, price: 50, createdAt: Date()),
+            VetAppointment(id: newId(), vetName: ownerName, clinicName: "Клиника Лапа", serviceName: "Ваксинация (DHPPL)", dogId: "2", dogName: "Луна", date: cal.date(byAdding: .day, value: 2, to: Date())!, notes: "", status: .upcoming, price: 45, createdAt: Date()),
+            VetAppointment(id: newId(), vetName: ownerName, clinicName: "Клиника Лапа", serviceName: "Почистване на зъби", dogId: "nd1", dogName: "Тоби", date: cal.date(byAdding: .day, value: -3, to: Date())!, notes: "Зъбен камък", status: .completed, price: 120, createdAt: Date().addingTimeInterval(-86400*5)),
+            VetAppointment(id: newId(), vetName: ownerName, clinicName: "Клиника Лапа", serviceName: "Кръвна картина", dogId: "nd2", dogName: "Мила", date: cal.date(byAdding: .day, value: -7, to: Date())!, notes: "", status: .completed, price: 65, createdAt: Date().addingTimeInterval(-86400*10)),
+            VetAppointment(id: newId(), vetName: ownerName, clinicName: "Клиника Лапа", serviceName: "Първичен преглед", dogId: "1", dogName: "Рекс", date: cal.date(byAdding: .day, value: -14, to: Date())!, notes: "Апатия", status: .completed, price: 50, createdAt: Date().addingTimeInterval(-86400*16)),
+        ]
+        vetServices = [
+            VetService(id: newId(), name: "Първичен преглед", price: 50, duration: "30 мин", category: .exam),
+            VetService(id: newId(), name: "Повторен преглед", price: 35, duration: "20 мин", category: .exam),
+            VetService(id: newId(), name: "Ваксинация (DHPPL)", price: 45, duration: "15 мин", category: .vaccination),
+            VetService(id: newId(), name: "Ваксинация (Бяс)", price: 40, duration: "15 мин", category: .vaccination),
+            VetService(id: newId(), name: "Кастрация куче", price: 250, duration: "2 ч", category: .surgery),
+            VetService(id: newId(), name: "Почистване на зъбен камък", price: 120, duration: "1 ч", category: .dental),
+            VetService(id: newId(), name: "Кръвна картина", price: 65, duration: "30 мин", category: .lab),
+            VetService(id: newId(), name: "Баня + сушене", price: 40, duration: "1 ч", category: .grooming),
+        ]
+    }
+
+    private func seedBrandData() {
+        guard brandProducts.isEmpty else { return }
+        let cal = Calendar.current
+        brandOrders = [
+            BrandOrder(id: newId(), productId: "bp1", productName: "Premium Adult Храна 12кг", buyerName: "Мария К.", quantity: 1, totalPrice: 89.90, status: .delivered, orderedAt: cal.date(byAdding: .day, value: -5, to: Date())!),
+            BrandOrder(id: newId(), productId: "bp2", productName: "Дентални лакомства x10", buyerName: "Георги П.", quantity: 2, totalPrice: 37.00, status: .shipped, orderedAt: cal.date(byAdding: .day, value: -2, to: Date())!),
+            BrandOrder(id: newId(), productId: "bp1", productName: "Premium Adult Храна 12кг", buyerName: "Иван С.", quantity: 1, totalPrice: 89.90, status: .processing, orderedAt: cal.date(byAdding: .day, value: -1, to: Date())!),
+            BrandOrder(id: newId(), productId: "bp5", productName: "Шампоан за къса козина", buyerName: "Ана Д.", quantity: 1, totalPrice: 15.90, status: .new, orderedAt: Date()),
+        ]
+        brandProducts = [
+            BrandProduct(id: newId(), name: "Premium Adult Храна 12кг", price: 89.90, category: "Храна", status: .approved, submittedAt: cal.date(byAdding: .day, value: -14, to: Date())!),
+            BrandProduct(id: newId(), name: "Дентални лакомства x10", price: 18.50, category: "Здраве", status: .approved, submittedAt: cal.date(byAdding: .day, value: -10, to: Date())!),
+            BrandProduct(id: newId(), name: "Интерактивна топка", price: 24.90, category: "Играчки", status: .pending, submittedAt: cal.date(byAdding: .day, value: -2, to: Date())!),
+            BrandProduct(id: newId(), name: "Зимно яке M", price: 59.90, category: "Аксесоари", status: .rejected, submittedAt: cal.date(byAdding: .day, value: -7, to: Date())!),
+            BrandProduct(id: newId(), name: "Шампоан за къса козина", price: 15.90, category: "Грижа", status: .approved, submittedAt: cal.date(byAdding: .day, value: -20, to: Date())!),
+        ]
+    }
+
+    private func seedWalkerData() {
+        guard walkerReviews.isEmpty else { return }
+        walkerPoints = 185
+        walkerWalksCount = 14
+        let cal = Calendar.current
+        walkerReviews = [
+            WalkerDashReview(id: newId(), clientName: "Мария К.", dogName: "Бъди", rating: 5, comment: "Перфектна разходка, Бъди беше щастлив!", date: cal.date(byAdding: .day, value: -1, to: Date())!),
+            WalkerDashReview(id: newId(), clientName: "Иван П.", dogName: "Лора", rating: 4, comment: "Много внимателен, ще ползваме пак.", date: cal.date(byAdding: .day, value: -3, to: Date())!),
+            WalkerDashReview(id: newId(), clientName: "Десислава М.", dogName: "Чарли", rating: 5, comment: "Чарли го обожава! Винаги щастлив след разходка.", date: cal.date(byAdding: .day, value: -5, to: Date())!),
+            WalkerDashReview(id: newId(), clientName: "Георги Т.", dogName: "Рокси", rating: 5, comment: "Препоръчвам! Надежден и точен.", date: cal.date(byAdding: .day, value: -8, to: Date())!),
+            WalkerDashReview(id: newId(), clientName: "Елена В.", dogName: "Макс", rating: 4, comment: "Добра разходка, малко късно се върна.", date: cal.date(byAdding: .day, value: -12, to: Date())!),
+        ]
+    }
+
+    private func seedShelterData() {
+        guard shelterAnimals.isEmpty else { return }
+        let cal = Calendar.current
+        adoptionRequests = [
+            AdoptionRequest(id: newId(), animalId: "sa1", animalName: "Шаро", requesterName: "Мария Иванова", requesterPhone: "+359 88 111 2222", requesterNote: "Имаме голям двор, обичаме кучета!", status: .pending, submittedAt: Date().addingTimeInterval(-3600)),
+            AdoptionRequest(id: newId(), animalId: "sa3", animalName: "Бела", requesterName: "Петър Георгиев", requesterPhone: "+359 89 333 4444", requesterNote: "Имаме две деца, търсим игриво куче.", status: .pending, submittedAt: Date().addingTimeInterval(-7200)),
+            AdoptionRequest(id: newId(), animalId: "sa4", animalName: "Рокси", requesterName: "Десислава М.", requesterPhone: "+359 87 555 6666", requesterNote: "", status: .approved, submittedAt: Date().addingTimeInterval(-86400*3)),
+        ]
+        shelterDonations = [
+            Donation(id: newId(), donorName: "Мария К.", amount: 20, isRecurring: true, date: cal.date(byAdding: .day, value: -1, to: Date())!),
+            Donation(id: newId(), donorName: "Анонимен", amount: 50, isRecurring: false, date: cal.date(byAdding: .day, value: -3, to: Date())!),
+            Donation(id: newId(), donorName: "Георги Т.", amount: 10, isRecurring: true, date: cal.date(byAdding: .day, value: -5, to: Date())!),
+            Donation(id: newId(), donorName: "Елена В.", amount: 5, isRecurring: true, date: cal.date(byAdding: .day, value: -7, to: Date())!),
+            Donation(id: newId(), donorName: "ООД Зоовита", amount: 200, isRecurring: false, date: cal.date(byAdding: .day, value: -10, to: Date())!),
+            Donation(id: newId(), donorName: "Иван П.", amount: 15, isRecurring: true, date: cal.date(byAdding: .day, value: -12, to: Date())!),
+        ]
+        shelterAnimals = [
+            ShelterAnimal(id: newId(), name: "Шаро", breed: "Микс", age: "3 години", sex: .male, description: "Игрив и приятелски настроен.", photoURL: URL(string: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=400&h=400&q=85"), isAdopted: false, addedAt: Date().addingTimeInterval(-86400*10)),
+            ShelterAnimal(id: newId(), name: "Мечо", breed: "Немска овчарка", age: "5 години", sex: .male, description: "Тих и послушен. Обича разходки.", photoURL: URL(string: "https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?auto=format&fit=crop&w=400&h=400&q=85"), isAdopted: false, addedAt: Date().addingTimeInterval(-86400*7)),
+            ShelterAnimal(id: newId(), name: "Бела", breed: "Лабрадор микс", age: "1 година", sex: .female, description: "Енергична, обича деца.", photoURL: URL(string: "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=400&h=400&q=85"), isAdopted: false, addedAt: Date().addingTimeInterval(-86400*5)),
+            ShelterAnimal(id: newId(), name: "Рокси", breed: "Микс", age: "2 години", sex: .female, description: "Намерена на улицата, вече ваксинирана.", photoURL: URL(string: "https://images.unsplash.com/photo-1561037404-61cd46aa615b?auto=format&fit=crop&w=400&h=400&q=85"), isAdopted: true, addedAt: Date().addingTimeInterval(-86400*20)),
+            ShelterAnimal(id: newId(), name: "Тарзан", breed: "Питбул", age: "4 години", sex: .male, description: "Кротък гигант. Обожава хората.", photoURL: URL(string: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=400&h=400&q=85"), isAdopted: false, addedAt: Date().addingTimeInterval(-86400*3)),
+        ]
     }
 
     // MARK: - ID generation

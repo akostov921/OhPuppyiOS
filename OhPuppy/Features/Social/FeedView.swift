@@ -1,8 +1,11 @@
 import SwiftUI
 
 struct FeedView: View {
+    @Environment(AppStore.self) private var store
     @State private var selectedTab = "Следвани"
     @State private var showCameraConfirmation = false
+    @State private var showCreatePost = false
+    @State private var userPosts: [FeedPost] = []
 
     private let tabs = ["Следвани", "За теб", "Близо"]
 
@@ -13,7 +16,7 @@ struct FeedView: View {
                     .padding(.bottom, 16)
 
                 // Posts
-                ForEach(feedPosts) { post in
+                ForEach(userPosts + feedPosts) { post in
                     FeedPostCard(post: post)
                         .padding(.bottom, 20)
                 }
@@ -26,6 +29,9 @@ struct FeedView: View {
             Button("ОК", role: .cancel) { }
         } message: {
             Text("Снимката е добавена!")
+        }
+        .sheet(isPresented: $showCreatePost) {
+            CreatePostSheet(userPosts: $userPosts)
         }
     }
 
@@ -43,8 +49,8 @@ struct FeedView: View {
 
                 Spacer()
 
-                Button { showCameraConfirmation = true } label: {
-                    Image(systemName: "camera.fill")
+                Button { showCreatePost = true } label: {
+                    Image(systemName: "plus.circle.fill")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 40, height: 40)
@@ -173,7 +179,7 @@ struct FeedView: View {
 
 // MARK: - Feed Post Model
 
-enum FeedPostType {
+enum FeedPostType: Hashable {
     case photo, text, question, poll
 }
 
@@ -213,6 +219,161 @@ struct FeedComment: Identifiable {
     let timeAgo: String
 }
 
+// MARK: - Create Post Sheet
+
+struct CreatePostSheet: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @Binding var userPosts: [FeedPost]
+    @State private var caption = ""
+    @State private var selectedDogIndex = 0
+    @State private var selectedPostType: FeedPostType = .photo
+    @State private var showSuccess = false
+
+    private let postTypeOptions: [(FeedPostType, String)] = [
+        (.photo, "Снимка"),
+        (.text, "Текст"),
+        (.question, "Въпрос"),
+        (.poll, "Анкета"),
+    ]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Photo placeholder
+                    if selectedPostType == .photo {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(OPTheme.surfaceSunken)
+                            .frame(height: 200)
+                            .overlay {
+                                VStack(spacing: 10) {
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 32, weight: .semibold))
+                                        .foregroundStyle(OPTheme.textTertiary)
+                                    Text("Добави снимка")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(OPTheme.textTertiary)
+                                }
+                            }
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .stroke(OPTheme.border, lineWidth: 1)
+                            )
+                    }
+
+                    // Caption field
+                    TextField("Напиши нещо...", text: $caption, axis: .vertical)
+                        .font(.system(size: 16, weight: .medium))
+                        .lineLimit(3...8)
+                        .padding(14)
+                        .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    // Dog tag selector
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Избери куче")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(OPTheme.text)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach(Array(store.dogs.enumerated()), id: \.element.id) { idx, dog in
+                                    Button {
+                                        withAnimation(OPTheme.quickSpring) { selectedDogIndex = idx }
+                                    } label: {
+                                        VStack(spacing: 6) {
+                                            DogAvatar(url: dog.avatarURL, size: 52, showRing: selectedDogIndex == idx)
+                                            Text(dog.name)
+                                                .font(.system(size: 12, weight: selectedDogIndex == idx ? .bold : .medium))
+                                                .foregroundStyle(selectedDogIndex == idx ? OPTheme.primary : OPTheme.textSecondary)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Post type picker
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Тип на публикация")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(OPTheme.text)
+                        HStack(spacing: 8) {
+                            ForEach(postTypeOptions, id: \.0) { type, label in
+                                Button {
+                                    withAnimation(OPTheme.quickSpring) { selectedPostType = type }
+                                } label: {
+                                    Text(label)
+                                        .font(.system(size: 14, weight: selectedPostType == type ? .bold : .medium))
+                                        .foregroundStyle(selectedPostType == type ? .white : OPTheme.text)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 9)
+                                        .background(
+                                            selectedPostType == type ? AnyShapeStyle(OPTheme.mintGradient) : AnyShapeStyle(OPTheme.surfaceSunken),
+                                            in: Capsule()
+                                        )
+                                }
+                            }
+                        }
+                    }
+
+                    // Publish button
+                    Button {
+                        guard !caption.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+                        let dog = store.dogs[safe: selectedDogIndex] ?? store.dogs.first!
+                        let newPost = FeedPost(
+                            id: UUID().uuidString,
+                            dogName: dog.name,
+                            dogBreed: dog.breed,
+                            ownerName: store.ownerName,
+                            timeAgo: "сега",
+                            caption: caption,
+                            likes: 0,
+                            comments: 0,
+                            isLiked: false,
+                            avatarURL: dog.avatarURL?.absoluteString ?? "",
+                            postType: selectedPostType
+                        )
+                        userPosts.insert(newPost, at: 0)
+                        showSuccess = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "paperplane.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Публикувай")
+                                .font(.system(size: 17, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            caption.trimmingCharacters(in: .whitespaces).isEmpty
+                                ? AnyShapeStyle(OPTheme.surfaceSunken)
+                                : AnyShapeStyle(OPTheme.primaryGradient),
+                            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        )
+                        .shadow(color: caption.trimmingCharacters(in: .whitespaces).isEmpty ? .clear : OPTheme.primary.opacity(0.3), radius: 8, y: 4)
+                    }
+                    .disabled(caption.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding(OPTheme.screenPadding)
+            }
+            .background(OPTheme.bg)
+            .navigationTitle("Нова публикация")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отказ") { dismiss() }
+                }
+            }
+            .alert("Публикувано!", isPresented: $showSuccess) {
+                Button("OK") { dismiss() }
+            } message: {
+                Text("Публикацията е добавена към емисията ти.")
+            }
+        }
+    }
+}
+
 // MARK: - Feed Post Card
 
 struct FeedPostCard: View {
@@ -225,6 +386,8 @@ struct FeedPostCard: View {
     @State private var postHidden = false
     @State private var commentTapped = false
     @State private var showDogProfile = false
+    @State private var showReplyAlert = false
+    @State private var showReportAlert = false
 
     private var matchingNearbyDog: NearbyDog? {
         nearbyDogsData.first { $0.name == post.dogName }
@@ -328,7 +491,7 @@ struct FeedPostCard: View {
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(OPTheme.text)
                         .lineSpacing(3)
-                    Button {} label: {
+                    Button { showReplyAlert = true } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "arrowshape.turn.up.left.fill")
                                 .font(.system(size: 12))
@@ -477,7 +640,7 @@ struct FeedPostCard: View {
                 withAnimation { postHidden = true }
             }
             Button("Докладвай", role: .destructive) {
-                // No-op placeholder
+                showReportAlert = true
             }
             Button("Отказ", role: .cancel) { }
         }
@@ -485,6 +648,16 @@ struct FeedPostCard: View {
             if let nearby = matchingNearbyDog {
                 PublicDogProfileView(dog: nearby)
             }
+        }
+        .alert("Отговори", isPresented: $showReplyAlert) {
+            Button("ОК", role: .cancel) { }
+        } message: {
+            Text("Отговорите ще бъдат налични скоро.")
+        }
+        .alert("Докладвано", isPresented: $showReportAlert) {
+            Button("ОК", role: .cancel) { }
+        } message: {
+            Text("Благодарим! Докладът е изпратен.")
         }
     }
 }

@@ -168,6 +168,9 @@ struct HomeView: View {
     // MARK: - Dog Status State
     @State private var showStatusPicker = false
 
+    // MARK: - Walk Review State
+    @State private var walkToReview: WalkRequest?
+
     // MARK: - Hero Card Animation State
     @State private var heroBadgeShadowPulse = false
 
@@ -180,6 +183,30 @@ struct HomeView: View {
             }
         }
         .navigationBarHidden(true)
+    }
+
+    private var roleSwitcherPill: some View {
+        let availableRoles: [UserRole] = [.owner] + store.registeredRoles.sorted(by: { $0.rawValue < $1.rawValue })
+        return Menu {
+            ForEach(availableRoles, id: \.self) { role in
+                Button {
+                    withAnimation(OPTheme.quickSpring) { store.activeRole = role }
+                } label: {
+                    Label(role.label, systemImage: role.icon)
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: store.activeRole.icon)
+                    .font(.system(size: 11, weight: .bold))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .bold))
+            }
+            .foregroundStyle(OPTheme.primary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(OPTheme.primarySoft, in: Capsule())
+        }
     }
 
     // MARK: - Empty State
@@ -232,7 +259,7 @@ struct HomeView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "plus")
                             .font(.system(size: 14, weight: .bold))
-                        Text("Добави ку��е")
+                        Text("Добави куче")
                             .font(.system(size: 16, weight: .bold))
                     }
                     .foregroundStyle(.white)
@@ -259,6 +286,14 @@ struct HomeView: View {
                 header
                     .padding(.bottom, 14)
 
+                if !store.upcomingWalks.isEmpty || !store.completedWalks.isEmpty {
+                    upcomingWalksSection.padding(.bottom, 20)
+                }
+
+                if !store.vetAppointments.filter({ $0.status == .upcoming }).isEmpty {
+                    vetAppointmentsSection.padding(.bottom, 20)
+                }
+
                 ForEach(store.homeSectionOrder, id: \.self) { section in
                     switch section {
                     case .stories:
@@ -283,7 +318,7 @@ struct HomeView: View {
         .alert("Часът е запазен!", isPresented: $showBookConfirmation) {
             Button("ОК", role: .cancel) { }
         } message: {
-            Text("Часът е запазен при д-р Иванов за 30 май.")
+            Text("Часът е запазен! Ще получиш напомняне.")
         }
         .sheet(isPresented: $showPostponeSheet) {
             PostponeSheet(postponeDate: $postponeDate, showConfirmation: $showPostponeConfirmation)
@@ -299,6 +334,9 @@ struct HomeView: View {
         .sheet(isPresented: $showStatusPicker) {
             DogStatusView()
                 .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $walkToReview) { walk in
+            WalkReviewSheet(walk: walk)
         }
         .sheet(isPresented: $showHomeCustomize) {
             HomeSectionOrderSheet()
@@ -325,6 +363,11 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 OPWordmark(size: 15)
+
+                if !store.registeredRoles.isEmpty {
+                    roleSwitcherPill
+                }
+
                 Spacer()
 
                 HStack(spacing: 8) {
@@ -691,6 +734,135 @@ struct HomeView: View {
             .shadow(color: OPTheme.primary.opacity(0.12), radius: 16, y: 6)
         }
         .buttonStyle(PressableCardStyle())
+        .padding(.horizontal, OPTheme.screenPadding)
+    }
+
+    // MARK: - Upcoming Walks (Owner)
+
+    private var upcomingWalksSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            OPSectionHeader(title: "Разходки")
+
+            ForEach(store.upcomingWalks) { walk in
+                HStack(spacing: 12) {
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(OPTheme.mintGradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(walk.walkerName) — \(walk.dogName)")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(OPTheme.text)
+                        Text("\(walk.duration) мин · \(walk.date.formatted(.dateTime.day().month(.abbreviated).hour().minute()))")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(OPTheme.textSecondary)
+                    }
+                    Spacer()
+                    Text("Предстояща")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(OPTheme.mint)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(OPTheme.mint.opacity(0.12), in: Capsule())
+                }
+                .padding(12)
+                .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+            }
+
+            ForEach(store.completedWalks) { walk in
+                VStack(spacing: 0) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.white)
+                            .frame(width: 36, height: 36)
+                            .background(OPTheme.accentGradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("\(walk.walkerName) — \(walk.dogName)")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(OPTheme.text)
+                            Text("\(walk.duration) мин · \(walk.date.formatted(.dateTime.day().month(.abbreviated).hour().minute()))")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(OPTheme.textSecondary)
+                        }
+                        Spacer()
+                        Text("Завършена")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(OPTheme.accent)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(OPTheme.accentSoft, in: Capsule())
+                    }
+
+                    Button {
+                        walkToReview = walk
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 13))
+                            Text("Потвърди и оцени")
+                                .font(.system(size: 13, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(OPTheme.accentGradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .padding(.top, 8)
+                }
+                .padding(12)
+                .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+            }
+        }
+        .padding(.horizontal, OPTheme.screenPadding)
+    }
+
+    // MARK: - Vet Appointments (Owner)
+
+    private var vetAppointmentsSection: some View {
+        let upcoming = store.vetAppointments.filter { $0.status == .upcoming }.sorted { $0.date < $1.date }
+        return VStack(alignment: .leading, spacing: 10) {
+            OPSectionHeader(title: "Ветеринарни часове")
+
+            ForEach(upcoming) { appt in
+                HStack(spacing: 12) {
+                    Image(systemName: "stethoscope")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(OPTheme.primaryGradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(appt.serviceName)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(OPTheme.text)
+                        Text("\(appt.vetName) · \(appt.clinicName)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(OPTheme.textSecondary)
+                        Text(appt.date.formatted(.dateTime.day().month(.abbreviated).hour().minute()))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(OPTheme.textTertiary)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("\(Int(appt.price)) лв")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(OPTheme.primary)
+                        Text("Предстоящ")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(OPTheme.sky)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(OPTheme.sky.opacity(0.12), in: Capsule())
+                    }
+                }
+                .padding(12)
+                .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+            }
+        }
         .padding(.horizontal, OPTheme.screenPadding)
     }
 
@@ -1072,7 +1244,7 @@ struct HomeView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("4 кучета наблизо")
+                            Text("Кучета наблизо")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundStyle(OPTheme.text)
                             Text("Намери приятел за разходка")
