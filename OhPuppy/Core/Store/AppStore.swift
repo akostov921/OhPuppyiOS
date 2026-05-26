@@ -92,6 +92,7 @@ private struct SavedState: Codable {
     var brandOrders: [BrandOrder]?
     var adoptionRequests: [AdoptionRequest]?
     var shelterDonations: [Donation]?
+    var appNotifications: [AppNotification]?
     var nextId: Int
 }
 
@@ -207,6 +208,18 @@ final class AppStore {
     var brandOrders: [BrandOrder] = []
     var adoptionRequests: [AdoptionRequest] = []
     var shelterDonations: [Donation] = []
+    var appNotifications: [AppNotification] = []
+
+    var vetAcceptsOnlineBooking: Bool {
+        didSet { UserDefaults.standard.set(vetAcceptsOnlineBooking, forKey: "vetAcceptsOnlineBooking") }
+    }
+    var walkerAcceptsOnlineRequests: Bool {
+        didSet { UserDefaults.standard.set(walkerAcceptsOnlineRequests, forKey: "walkerAcceptsOnlineRequests") }
+    }
+
+    var unreadNotificationCount: Int {
+        appNotifications.filter { !$0.isRead }.count
+    }
 
     var upcomingWalks: [WalkRequest] { walkRequests.filter { $0.status == .accepted } }
     var completedWalks: [WalkRequest] { walkRequests.filter { $0.status == .completed } }
@@ -243,6 +256,8 @@ final class AppStore {
         self.savedCardLast4 = defaults.string(forKey: "savedCardLast4") ?? ""
         self.savedDeliveryAddress = defaults.string(forKey: "savedDeliveryAddress") ?? ""
         self.acceptsWalkOffers = defaults.bool(forKey: "acceptsWalkOffers")
+        self.vetAcceptsOnlineBooking = defaults.object(forKey: "vetAcceptsOnlineBooking") == nil ? true : defaults.bool(forKey: "vetAcceptsOnlineBooking")
+        self.walkerAcceptsOnlineRequests = defaults.object(forKey: "walkerAcceptsOnlineRequests") == nil ? true : defaults.bool(forKey: "walkerAcceptsOnlineRequests")
         self.locationPrecision = LocationPrecision(rawValue: defaults.string(forKey: "locationPrecision") ?? "Точна") ?? .exact
 
         if let sectionData = defaults.data(forKey: "homeSectionOrder"),
@@ -292,6 +307,7 @@ final class AppStore {
             self.brandOrders = state.brandOrders ?? []
             self.adoptionRequests = state.adoptionRequests ?? []
             self.shelterDonations = state.shelterDonations ?? []
+            self.appNotifications = state.appNotifications ?? []
         } else {
             let cal = Calendar.current
             self.dogs = [
@@ -397,6 +413,7 @@ final class AppStore {
             brandOrders: brandOrders,
             adoptionRequests: adoptionRequests,
             shelterDonations: shelterDonations,
+            appNotifications: appNotifications,
             nextId: nextId
         )
         if let data = try? JSONEncoder().encode(state) {
@@ -793,6 +810,7 @@ final class AppStore {
             try? await Task.sleep(for: .seconds(2))
             if let i = walkRequests.firstIndex(where: { $0.id == req.id }) {
                 walkRequests[i].status = .accepted
+                addNotification(icon: "figure.walk", title: "Заявка приета!", body: "\(req.walkerName) ще разходи \(req.dogName)", type: .walkOffer, actionId: req.id)
                 save()
             }
         }
@@ -816,6 +834,7 @@ final class AppStore {
         walkRequests[i].status = .completed
         let req = walkRequests[i]
         walkerEarnings.append(WalkerEarning(id: newId(), walkRequestId: req.id, clientName: ownerName, dogName: req.dogName, amount: req.price, status: .held, date: Date()))
+        addNotification(icon: "checkmark.circle.fill", title: "Разходката приключи", body: "Разходката с \(req.dogName) приключи. Потвърди и остави ревю.", type: .walkComplete, actionId: req.id)
         save()
     }
 
@@ -847,7 +866,20 @@ final class AppStore {
 
     func submitVetAppointment(_ appt: VetAppointment) {
         vetAppointments.append(appt)
+        let dateStr = appt.date.formatted(.dateTime.day().month(.abbreviated).hour().minute())
+        addNotification(icon: "stethoscope", title: "Час запазен!", body: "Часът при \(appt.vetName) е запазен за \(dateStr)", type: .vetVisit, actionId: appt.id)
         save()
+    }
+
+    func completeVetAppointment(id: String, diagnosis: String?, prescription: String?) {
+        if let i = vetAppointments.firstIndex(where: { $0.id == id }) {
+            vetAppointments[i].status = .completed
+            vetAppointments[i].diagnosis = diagnosis
+            vetAppointments[i].prescription = prescription
+            let dogName = vetAppointments[i].dogName
+            addNotification(icon: "cross.case.fill", title: "Прегледът приключи", body: "Прегледът на \(dogName) приключи. Виж рецептата.", type: .vetVisit, actionId: id)
+            save()
+        }
     }
 
     func cancelVetAppointment(id: String) {
@@ -873,9 +905,11 @@ final class AppStore {
     func approveAdoptionRequest(id: String) {
         if let i = adoptionRequests.firstIndex(where: { $0.id == id }) {
             adoptionRequests[i].status = .approved
+            let animalName = adoptionRequests[i].animalName
             if let ai = shelterAnimals.firstIndex(where: { $0.id == adoptionRequests[i].animalId }) {
                 shelterAnimals[ai].isAdopted = true
             }
+            addNotification(icon: "heart.fill", title: "Осиновяване одобрено!", body: "Заявката за осиновяване на \(animalName) е одобрена!", type: .adoption, actionId: id)
             save()
         }
     }
@@ -889,10 +923,26 @@ final class AppStore {
 
     func addDonation(_ donation: Donation) { shelterDonations.append(donation); save() }
 
+    // MARK: - App Notifications
+
+    func addNotification(icon: String, title: String, body: String, type: AppNotification.NotifType, actionId: String? = nil) {
+        let notif = AppNotification(id: newId(), icon: icon, title: title, body: body, type: type, isRead: false, actionId: actionId, createdAt: Date())
+        appNotifications.insert(notif, at: 0)
+        save()
+    }
+
+    func markNotificationRead(id: String) {
+        if let i = appNotifications.firstIndex(where: { $0.id == id }) {
+            appNotifications[i].isRead = true
+            save()
+        }
+    }
+
     // MARK: - Orders
 
     func placeOrder(_ order: Order) {
         orders.append(order)
+        addNotification(icon: "bag.fill", title: "Поръчка приета!", body: "Поръчка \(order.trackingNumber) е приета!", type: .order, actionId: order.id)
         save()
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(3))

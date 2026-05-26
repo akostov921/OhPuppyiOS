@@ -4,49 +4,99 @@ import SwiftUI
 
 struct NotificationsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppStore.self) private var store
 
-    private let notifications: [(icon: String, title: String, subtitle: String, time: String, color: Color)] = [
+    private let fallbackNotifications: [(icon: String, title: String, subtitle: String, time: String, color: Color)] = [
         ("cross.vial.fill", "Ваксина Бяс", "Рекс има нужда от ваксина след 6 дни", "днес", OPTheme.danger),
         ("bubble.left.fill", "Ново съобщение", "Петър (Тоби) ти изпрати съобщение", "14:32", OPTheme.mint),
         ("pawprint.fill", "Нов последовател", "Ана (Мила) те последва", "вчера", OPTheme.accent),
         ("calendar.badge.exclamationmark", "Събитие утре", "Среща на лабрадори в Южен парк", "вчера", OPTheme.sky),
     ]
 
+    private func notifColor(for type: AppNotification.NotifType) -> Color {
+        switch type {
+        case .vaccine: OPTheme.danger
+        case .vetVisit: OPTheme.mint
+        case .walkComplete: OPTheme.accent
+        case .walkOffer: OPTheme.sky
+        case .adoption: OPTheme.rose
+        case .order: OPTheme.primary
+        case .social: OPTheme.mint
+        }
+    }
+
+    private func relativeTime(from date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        if interval < 60 { return "сега" }
+        if interval < 3600 { return "преди \(Int(interval / 60)) мин" }
+        if interval < 86400 { return "преди \(Int(interval / 3600)) ч" }
+        let days = Int(interval / 86400)
+        if days == 1 { return "вчера" }
+        return "преди \(days) дни"
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                ForEach(Array(notifications.enumerated()), id: \.offset) { index, notif in
-                    HStack(spacing: 12) {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(notif.color.opacity(0.12))
-                            .frame(width: 40, height: 40)
-                            .overlay {
-                                Image(systemName: notif.icon)
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(notif.color)
-                            }
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(notif.title)
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundStyle(OPTheme.text)
-                            Text(notif.subtitle)
-                                .font(.system(size: 13, weight: .regular))
-                                .foregroundStyle(OPTheme.textSecondary)
-                                .lineLimit(1)
+                if store.appNotifications.isEmpty {
+                    // Fallback mock
+                    ForEach(Array(fallbackNotifications.enumerated()), id: \.offset) { index, notif in
+                        fallbackRow(notif: notif)
+                        if index < fallbackNotifications.count - 1 {
+                            Divider().padding(.leading, 72)
                         }
-
-                        Spacer()
-
-                        Text(notif.time)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(OPTheme.textTertiary)
                     }
-                    .padding(.horizontal, OPTheme.screenPadding)
-                    .padding(.vertical, 14)
+                } else {
+                    let sorted = store.appNotifications.sorted { $0.createdAt > $1.createdAt }
+                    ForEach(Array(sorted.enumerated()), id: \.element.id) { index, notif in
+                        Button {
+                            store.markNotificationRead(id: notif.id)
+                        } label: {
+                            HStack(spacing: 12) {
+                                ZStack(alignment: .topLeading) {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(notifColor(for: notif.type).opacity(0.12))
+                                        .frame(width: 40, height: 40)
+                                        .overlay {
+                                            Image(systemName: notif.icon)
+                                                .font(.system(size: 16, weight: .semibold))
+                                                .foregroundStyle(notifColor(for: notif.type))
+                                        }
 
-                    if index < notifications.count - 1 {
-                        Divider().padding(.leading, 72)
+                                    if !notif.isRead {
+                                        Circle()
+                                            .fill(OPTheme.sky)
+                                            .frame(width: 10, height: 10)
+                                            .overlay(Circle().stroke(OPTheme.surface, lineWidth: 2))
+                                            .offset(x: -3, y: -3)
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(notif.title)
+                                        .font(.system(size: 15, weight: notif.isRead ? .semibold : .bold))
+                                        .foregroundStyle(OPTheme.text)
+                                    Text(notif.body)
+                                        .font(.system(size: 13, weight: .regular))
+                                        .foregroundStyle(OPTheme.textSecondary)
+                                        .lineLimit(2)
+                                }
+
+                                Spacer()
+
+                                Text(relativeTime(from: notif.createdAt))
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(OPTheme.textTertiary)
+                            }
+                            .padding(.horizontal, OPTheme.screenPadding)
+                            .padding(.vertical, 14)
+                            .background(notif.isRead ? Color.clear : OPTheme.primarySoft.opacity(0.3))
+                        }
+                        .buttonStyle(.plain)
+
+                        if index < sorted.count - 1 {
+                            Divider().padding(.leading, 72)
+                        }
                     }
                 }
             }
@@ -62,6 +112,37 @@ struct NotificationsView: View {
         .background(OPTheme.bg)
         .navigationTitle("Известия")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func fallbackRow(notif: (icon: String, title: String, subtitle: String, time: String, color: Color)) -> some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(notif.color.opacity(0.12))
+                .frame(width: 40, height: 40)
+                .overlay {
+                    Image(systemName: notif.icon)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(notif.color)
+                }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(notif.title)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(OPTheme.text)
+                Text(notif.subtitle)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(OPTheme.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Text(notif.time)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(OPTheme.textTertiary)
+        }
+        .padding(.horizontal, OPTheme.screenPadding)
+        .padding(.vertical, 14)
     }
 }
 
@@ -290,7 +371,8 @@ struct HomeView: View {
                     upcomingWalksSection.padding(.bottom, 20)
                 }
 
-                if !store.vetAppointments.filter({ $0.status == .upcoming }).isEmpty {
+                if !store.vetAppointments.filter({ $0.status == .upcoming }).isEmpty ||
+                   !store.vetAppointments.filter({ $0.status == .completed && ($0.diagnosis != nil || $0.prescription != nil) }).isEmpty {
                     vetAppointmentsSection.padding(.bottom, 20)
                 }
 
@@ -396,11 +478,15 @@ struct HomeView: View {
                                 .frame(width: 40, height: 40)
                                 .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                            Circle()
-                                .fill(OPTheme.danger)
-                                .frame(width: 10, height: 10)
-                                .overlay(Circle().stroke(OPTheme.bg, lineWidth: 2))
-                                .offset(x: 2, y: -2)
+                            if store.unreadNotificationCount > 0 {
+                                Text("\(min(store.unreadNotificationCount, 99))")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(minWidth: 16, minHeight: 16)
+                                    .background(OPTheme.danger, in: Capsule())
+                                    .overlay(Capsule().stroke(OPTheme.bg, lineWidth: 2))
+                                    .offset(x: 4, y: -4)
+                            }
                         }
                     }
                     .simultaneousGesture(TapGesture().onEnded { bellTapped.toggle() })
@@ -824,6 +910,10 @@ struct HomeView: View {
 
     private var vetAppointmentsSection: some View {
         let upcoming = store.vetAppointments.filter { $0.status == .upcoming }.sorted { $0.date < $1.date }
+        let recentCompleted = store.vetAppointments
+            .filter { $0.status == .completed && ($0.diagnosis != nil || $0.prescription != nil) }
+            .sorted { $0.date > $1.date }
+            .prefix(3)
         return VStack(alignment: .leading, spacing: 10) {
             OPSectionHeader(title: "Ветеринарни часове")
 
@@ -861,6 +951,10 @@ struct HomeView: View {
                 .padding(12)
                 .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+            }
+
+            ForEach(Array(recentCompleted)) { appt in
+                VetPrescriptionCard(appointment: appt)
             }
         }
         .padding(.horizontal, OPTheme.screenPadding)
@@ -1280,6 +1374,95 @@ struct HomeView: View {
         ]
     }
 
+}
+
+// MARK: - Vet Prescription Card (Owner View)
+
+struct VetPrescriptionCard: View {
+    let appointment: VetAppointment
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(OPTheme.quickSpring) { isExpanded.toggle() }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "cross.case.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(OPTheme.success, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(appointment.serviceName)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(OPTheme.text)
+                        Text("\(appointment.dogName) · \(appointment.date.formatted(.dateTime.day().month(.abbreviated)))")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(OPTheme.textSecondary)
+                    }
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Text("Завършен")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(OPTheme.success)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(OPTheme.successSoft, in: Capsule())
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(OPTheme.textTertiary)
+                    }
+                }
+                .padding(12)
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let diagnosis = appointment.diagnosis, !diagnosis.isEmpty {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "list.clipboard.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(OPTheme.mint)
+                                .frame(width: 20)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Диагноза")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(OPTheme.textSecondary)
+                                    .textCase(.uppercase)
+                                Text(diagnosis)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(OPTheme.text)
+                            }
+                        }
+                    }
+                    if let prescription = appointment.prescription, !prescription.isEmpty {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "pills.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(OPTheme.accent)
+                                .frame(width: 20)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Рецепта")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(OPTheme.textSecondary)
+                                    .textCase(.uppercase)
+                                Text(prescription)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(OPTheme.text)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OPTheme.success.opacity(0.3), lineWidth: 1))
+    }
 }
 
 // MARK: - Home Section Order Sheet

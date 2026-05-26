@@ -278,6 +278,7 @@ struct VetCalendarView: View {
     @Environment(AppStore.self) private var store
     @State private var selectedDate = Date()
     @State private var currentMonth = Date()
+    @State private var appointmentToComplete: VetAppointment?
 
     private let calendar = Calendar.current
     private let weekdaySymbols = ["Пон", "Вт", "Ср", "Чет", "Пет", "Съб", "Нед"]
@@ -324,6 +325,21 @@ struct VetCalendarView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 20) {
+                if !store.vetAcceptsOnlineBooking {
+                    HStack(spacing: 10) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(OPTheme.warning)
+                        Text("Онлайн записването е изключено. Пациентите ще се свързват по телефон.")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(OPTheme.textSecondary)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(OPTheme.warningSoft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OPTheme.warning.opacity(0.3), lineWidth: 1))
+                }
+
                 // Month navigation
                 monthHeader
 
@@ -342,6 +358,9 @@ struct VetCalendarView: View {
         .background(OPTheme.bg)
         .navigationTitle("Календар")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $appointmentToComplete) { appt in
+            VetCompleteAppointmentSheet(appointment: appt)
+        }
     }
 
     // MARK: - Month Header
@@ -511,12 +530,7 @@ struct VetCalendarView: View {
 
                 if appt.status == .upcoming {
                     Button {
-                        withAnimation(OPTheme.quickSpring) {
-                            if let i = store.vetAppointments.firstIndex(where: { $0.id == appt.id }) {
-                                store.vetAppointments[i].status = .completed
-                                store.save()
-                            }
-                        }
+                        appointmentToComplete = appt
                     } label: {
                         Text("Завърши")
                             .font(.system(size: 11, weight: .bold))
@@ -967,6 +981,28 @@ struct VetSettingsView: View {
                     .foregroundStyle(OPTheme.text)
             }
 
+            VStack(alignment: .leading, spacing: 6) {
+                Toggle(isOn: $store.vetAcceptsOnlineBooking) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "calendar.badge.checkmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(store.vetAcceptsOnlineBooking ? OPTheme.mint : OPTheme.textTertiary)
+                            .frame(width: 20)
+                        Text("Приемам онлайн записвания")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(OPTheme.text)
+                    }
+                }
+                .tint(OPTheme.mint)
+
+                if !store.vetAcceptsOnlineBooking {
+                    Text("Пациентите ще виждат само телефон за контакт")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(OPTheme.textTertiary)
+                        .padding(.leading, 30)
+                }
+            }
+
             Toggle(isOn: $store.isDarkMode) {
                 HStack(spacing: 10) {
                     Image(systemName: store.isDarkMode ? "moon.fill" : "sun.max.fill")
@@ -1168,6 +1204,104 @@ struct VetNewAppointmentSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Затвори") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Vet Complete Appointment Sheet
+
+struct VetCompleteAppointmentSheet: View {
+    let appointment: VetAppointment
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var diagnosis = ""
+    @State private var prescription = ""
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Appointment info
+                    HStack(spacing: 12) {
+                        Image(systemName: "stethoscope")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 48, height: 48)
+                            .background(OPTheme.mintGradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(appointment.serviceName)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(OPTheme.text)
+                            Text(appointment.dogName)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(OPTheme.textSecondary)
+                            Text(appointment.date.formatted(.dateTime.day().month(.abbreviated).hour().minute()))
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(OPTheme.textTertiary)
+                        }
+                        Spacer()
+                    }
+                    .padding(14)
+                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+
+                    // Diagnosis
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("Диагноза", systemImage: "list.clipboard.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(OPTheme.text)
+                        TextField("Напр. Лек гастрит, здрав...", text: $diagnosis, axis: .vertical)
+                            .font(.system(size: 15))
+                            .lineLimit(2...5)
+                            .padding(12)
+                            .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+
+                    // Prescription
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("Рецепта", systemImage: "pills.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(OPTheme.text)
+                        TextField("Напр. Carprofen 50mg 2x дневно, 5 дни...", text: $prescription, axis: .vertical)
+                            .font(.system(size: 15))
+                            .lineLimit(2...5)
+                            .padding(12)
+                            .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+
+                    // Submit
+                    Button {
+                        store.completeVetAppointment(
+                            id: appointment.id,
+                            diagnosis: diagnosis.isEmpty ? nil : diagnosis,
+                            prescription: prescription.isEmpty ? nil : prescription
+                        )
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                            Text("Завърши и запиши")
+                                .font(.system(size: 17, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(OPTheme.mintGradient, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .shadow(color: OPTheme.mint.opacity(0.3), radius: 8, y: 4)
+                    }
+                }
+                .padding(OPTheme.screenPadding)
+            }
+            .background(OPTheme.bg)
+            .navigationTitle("Завършване на преглед")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отказ") { dismiss() }
                 }
             }
         }

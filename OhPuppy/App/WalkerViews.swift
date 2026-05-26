@@ -833,6 +833,7 @@ struct WalkerSettingsView: View {
                 availabilityGrid
                 servicesSection
                 priceSection
+                onlineRequestsToggle
                 roleSwitcher
                 darkModeToggle
                 logoutButton
@@ -1060,6 +1061,44 @@ struct WalkerSettingsView: View {
             .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
         }
+    }
+
+    // MARK: - Online Requests Toggle
+
+    private var onlineRequestsToggle: some View {
+        @Bindable var store = store
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                Image(systemName: "tray.full.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(store.walkerAcceptsOnlineRequests ? OPTheme.mint : OPTheme.textTertiary)
+                    .frame(width: 36, height: 36)
+                    .background(
+                        (store.walkerAcceptsOnlineRequests ? OPTheme.mintSoft : OPTheme.surfaceSunken),
+                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    )
+
+                Text("Приемам онлайн заявки")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(OPTheme.text)
+
+                Spacer()
+
+                Toggle("", isOn: $store.walkerAcceptsOnlineRequests)
+                    .labelsHidden()
+                    .tint(OPTheme.mint)
+            }
+
+            if !store.walkerAcceptsOnlineRequests {
+                Text("Собствениците ще виждат само контакт информация")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(OPTheme.textTertiary)
+                    .padding(.leading, 48)
+            }
+        }
+        .padding(14)
+        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
     }
 
     // MARK: - Dark Mode

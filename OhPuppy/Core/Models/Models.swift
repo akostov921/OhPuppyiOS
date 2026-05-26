@@ -492,6 +492,8 @@ struct VetAppointment: Identifiable, Codable {
     var status: AppointmentStatus
     var price: Double
     var createdAt: Date
+    var prescription: String?
+    var diagnosis: String?
 }
 
 // MARK: - Order
@@ -599,4 +601,21 @@ struct Donation: Identifiable, Codable {
     var isRecurring: Bool
     var date: Date
     var note: String?
+}
+
+// MARK: - App Notification
+
+struct AppNotification: Identifiable, Codable {
+    let id: String
+    var icon: String
+    var title: String
+    var body: String
+    var type: NotifType
+    var isRead: Bool
+    var actionId: String?
+    var createdAt: Date
+
+    enum NotifType: String, Codable {
+        case vaccine, vetVisit, walkComplete, walkOffer, adoption, order, social
+    }
 }
