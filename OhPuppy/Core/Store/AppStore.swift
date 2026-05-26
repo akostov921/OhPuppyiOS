@@ -170,7 +170,7 @@ final class AppStore {
         let defaults = UserDefaults.standard
         self.isAuthenticated = defaults.bool(forKey: "isAuthenticated")
         self.hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
-        self.ownerName = defaults.string(forKey: "ownerName") ?? ""
+        self.ownerName = defaults.string(forKey: "ownerName").flatMap { $0.isEmpty ? nil : $0 } ?? "Apostol"
         self.ownerEmail = defaults.string(forKey: "ownerEmail") ?? ""
         self.ownerBio = defaults.string(forKey: "ownerBio") ?? ""
         self.isDarkMode = defaults.bool(forKey: "isDarkMode")

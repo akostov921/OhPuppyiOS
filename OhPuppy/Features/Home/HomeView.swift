@@ -268,13 +268,13 @@ struct HomeView: View {
                     .padding(.bottom, 20)
 
                 socialSection
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 24)
 
                 playdateSection
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 24)
 
                 healthSummary
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 100)
             }
             .padding(.top, 6)
         }
@@ -956,13 +956,13 @@ struct HomeView: View {
 
     private var socialSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            OPSectionHeader(title: "Социално", actionLabel: "Виж Feed")
+            OPSectionHeader(title: "Социално")
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(socialPreviews, id: \.dogName) { preview in
                         NavigationLink(destination: FeedView()) {
-                            VStack(spacing: 0) {
+                            ZStack(alignment: .bottomLeading) {
                                 AsyncImage(url: preview.photoURL) { phase in
                                     if let image = phase.image {
                                         image.resizable().scaledToFill()
@@ -970,41 +970,39 @@ struct HomeView: View {
                                         Rectangle().fill(OPTheme.surfaceSunken)
                                     }
                                 }
-                                .frame(width: 140, height: 120)
+                                .frame(width: 150, height: 190)
                                 .clipped()
 
-                                HStack(spacing: 6) {
+                                LinearGradient(
+                                    colors: [.black.opacity(0.6), .clear],
+                                    startPoint: .bottom,
+                                    endPoint: .center
+                                )
+
+                                VStack(alignment: .leading, spacing: 4) {
                                     Text(preview.dogName)
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundStyle(OPTheme.text)
-                                    Spacer()
-                                    HStack(spacing: 3) {
+                                        .font(.system(size: 15, weight: .bold))
+                                        .foregroundStyle(.white)
+                                    HStack(spacing: 4) {
                                         Image(systemName: "heart.fill")
-                                            .font(.system(size: 9))
-                                            .foregroundStyle(OPTheme.danger)
+                                            .font(.system(size: 10))
                                         Text("\(preview.likes)")
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundStyle(OPTheme.textSecondary)
+                                            .font(.system(size: 12, weight: .semibold))
                                     }
+                                    .foregroundStyle(.white.opacity(0.8))
                                 }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
+                                .padding(12)
                             }
-                            .frame(width: 140)
-                            .background(OPTheme.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: OPTheme.cornerRadiusTiny, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: OPTheme.cornerRadiusTiny, style: .continuous)
-                                    .stroke(OPTheme.border, lineWidth: 1)
-                            )
-                            .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
+                            .frame(width: 150, height: 190)
+                            .clipShape(RoundedRectangle(cornerRadius: OPTheme.cornerRadiusSmall, style: .continuous))
+                            .shadow(color: OPTheme.primary.opacity(0.1), radius: 10, y: 4)
                         }
                         .buttonStyle(PressableCardStyle())
                     }
                 }
+                .padding(.horizontal, OPTheme.screenPadding)
             }
         }
-        .padding(.horizontal, OPTheme.screenPadding)
     }
 
     // MARK: - Playdate Section
@@ -1012,44 +1010,57 @@ struct HomeView: View {
     private var playdateSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             OPSectionHeader(title: "Playdate")
+                .padding(.horizontal, OPTheme.screenPadding)
 
             NavigationLink(destination: PlaydateView()) {
-                HStack(spacing: 14) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(OPTheme.mintGradient)
-                            .frame(width: 56, height: 56)
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 22))
-                            .foregroundStyle(.white)
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "52B788").opacity(0.15), Color(hex: "40916C").opacity(0.08)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+
+                    HStack(spacing: 14) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(OPTheme.mintGradient)
+                                .frame(width: 52, height: 52)
+                            Image(systemName: "pawprint.fill")
+                                .font(.system(size: 20))
+                                .foregroundStyle(.white)
+                                .symbolEffect(.breathe)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("4 кучета наблизо")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(OPTheme.text)
+                            Text("Намери приятел за разходка")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(OPTheme.textSecondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(OPTheme.mint)
+                            .frame(width: 30, height: 30)
+                            .background(OPTheme.mint.opacity(0.12), in: Circle())
                     }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("4 кучета наблизо")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(OPTheme.text)
-                        Text("Намери нов приятел за разходка")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(OPTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(OPTheme.textTertiary)
+                    .padding(16)
                 }
-                .padding(14)
-                .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: OPTheme.cornerRadiusSmall, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: OPTheme.cornerRadiusSmall, style: .continuous)
-                        .stroke(OPTheme.border, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(OPTheme.mint.opacity(0.2), lineWidth: 1)
                 )
-                .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
             }
             .buttonStyle(PressableCardStyle())
+            .padding(.horizontal, OPTheme.screenPadding)
         }
-        .padding(.horizontal, OPTheme.screenPadding)
     }
 
     private var socialPreviews: [(dogName: String, photoURL: URL?, likes: Int)] {

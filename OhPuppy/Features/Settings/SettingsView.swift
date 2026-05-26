@@ -12,277 +12,294 @@ struct SettingsView: View {
     @State private var showHelp = false
     @State private var showInviteShare = false
     @State private var showAbout = false
+    @State private var headerScale: CGFloat = 1.0
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVStack(spacing: 0) {
-                // Profile header
-                VStack(spacing: 14) {
-                    ZStack(alignment: .bottomTrailing) {
-                        AsyncImage(url: URL(string: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&h=200&q=85")) { phase in
-                            if let image = phase.image {
-                                image.resizable().scaledToFill()
-                            } else {
-                                Circle().fill(OPTheme.surfaceSunken)
-                            }
-                        }
-                        .frame(width: 90, height: 90)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(OPTheme.avatarRingGradient, lineWidth: 3))
+                profileHero
+                    .padding(.bottom, 20)
 
-                        Circle()
-                            .fill(OPTheme.primaryGradient)
-                            .frame(width: 28, height: 28)
-                            .overlay {
-                                Image(systemName: "pencil")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
-                            .overlay(Circle().stroke(OPTheme.bg, lineWidth: 2))
-                    }
-                    .onTapGesture { showEditProfile = true }
-
-                    VStack(spacing: 4) {
-                        Text(store.ownerName)
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundStyle(OPTheme.text)
-                        Text("София, България")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(OPTheme.textSecondary)
-                    }
-
-                    HStack(spacing: 24) {
-                        profileStat(value: "\(store.dogs.count)", label: "Кучета")
-                        profileStat(value: "\(store.vaccines.count)", label: "Ваксини")
-                        profileStat(value: "\(store.vetVisits.count)", label: "Прегледи")
-                    }
-                    .padding(.top, 4)
-                }
-                .padding(.vertical, 24)
-
-                // Settings sections
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("АКАУНТ")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(OPTheme.textSecondary)
-                        .tracking(0.5)
-                        .padding(.horizontal, OPTheme.screenPadding)
-
-                    VStack(spacing: 0) {
-                        settingsButton(icon: "person.fill", label: "Редактирай профил", color: OPTheme.primary) {
-                            showEditProfile = true
-                        }
-                        Divider().padding(.leading, 58)
-                        settingsButton(icon: "bell.fill", label: "Известия", color: OPTheme.accent) {
-                            showNotifications = true
-                        }
-                        Divider().padding(.leading, 58)
-                        settingsButton(icon: "shield.fill", label: "Поверителност", color: OPTheme.sky) {
-                            showPrivacy = true
-                        }
-                    }
-                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous)
-                            .stroke(OPTheme.border, lineWidth: 1)
-                    )
-                    .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
+                statsRow
                     .padding(.horizontal, OPTheme.screenPadding)
-                }
-                .padding(.bottom, 24)
+                    .padding(.bottom, 28)
 
-                // Services section
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("УСЛУГИ")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(OPTheme.textSecondary)
-                        .tracking(0.5)
-                        .padding(.horizontal, OPTheme.screenPadding)
+                settingsSection(title: "АКАУНТ", items: [
+                    SettingsItem(icon: "person.fill", label: "Редактирай профил", color: OPTheme.primary) { showEditProfile = true },
+                    SettingsItem(icon: "bell.fill", label: "Известия", color: OPTheme.accent) { showNotifications = true },
+                    SettingsItem(icon: "shield.fill", label: "Поверителност", color: OPTheme.sky) { showPrivacy = true },
+                ])
+                .padding(.bottom, 20)
 
-                    VStack(spacing: 0) {
-                        NavigationLink(destination: DogWalkerView()) {
-                            HStack(spacing: 12) {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(OPTheme.mint.opacity(0.12))
-                                    .frame(width: 32, height: 32)
-                                    .overlay {
-                                        Image(systemName: "figure.walk")
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundStyle(OPTheme.mint)
-                                    }
-                                Text("Разходчици")
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundStyle(OPTheme.text)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(OPTheme.textTertiary)
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                        }
-                        .buttonStyle(.plain)
-                        Divider().padding(.leading, 58)
-                        NavigationLink(destination: PlaydateView()) {
-                            HStack(spacing: 12) {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(OPTheme.rose.opacity(0.12))
-                                    .frame(width: 32, height: 32)
-                                    .overlay {
-                                        Image(systemName: "heart.fill")
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundStyle(OPTheme.rose)
-                                    }
-                                Text("Playdate")
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundStyle(OPTheme.text)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(OPTheme.textTertiary)
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                        }
-                        .buttonStyle(.plain)
-                        Divider().padding(.leading, 58)
-                        settingsButton(icon: "person.2.fill", label: "Покани приятел", color: OPTheme.accent) {
-                            showInviteShare = true
-                        }
-                    }
-                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous)
-                            .stroke(OPTheme.border, lineWidth: 1)
-                    )
-                    .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
+                servicesSection
+                    .padding(.bottom, 20)
+
+                settingsSection(title: "ПРИЛОЖЕНИЕ", items: [
+                    SettingsItem(icon: "globe", label: "Език", color: OPTheme.mint) { showLanguage = true },
+                    SettingsItem(icon: "moon.fill", label: "Тъмен режим", color: OPTheme.primary) { showDarkMode = true },
+                    SettingsItem(icon: "questionmark.circle.fill", label: "Помощ", color: OPTheme.info) { showHelp = true },
+                    SettingsItem(icon: "info.circle.fill", label: "За OhPuppy", color: OPTheme.textSecondary) { showAbout = true },
+                ])
+                .padding(.bottom, 20)
+
+                logoutButton
                     .padding(.horizontal, OPTheme.screenPadding)
-                }
-                .padding(.bottom, 24)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("ПРИЛОЖЕНИЕ")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(OPTheme.textSecondary)
-                        .tracking(0.5)
-                        .padding(.horizontal, OPTheme.screenPadding)
-
-                    VStack(spacing: 0) {
-                        settingsButton(icon: "globe", label: "Език", color: OPTheme.mint) {
-                            showLanguage = true
-                        }
-                        Divider().padding(.leading, 58)
-                        settingsButton(icon: "moon.fill", label: "Тъмен режим", color: OPTheme.primary) {
-                            showDarkMode = true
-                        }
-                        Divider().padding(.leading, 58)
-                        settingsButton(icon: "questionmark.circle.fill", label: "Помощ", color: OPTheme.info) {
-                            showHelp = true
-                        }
-                        Divider().padding(.leading, 58)
-                        settingsButton(icon: "info.circle.fill", label: "За OhPuppy", color: OPTheme.textSecondary) {
-                            showAbout = true
-                        }
-                    }
-                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous)
-                            .stroke(OPTheme.border, lineWidth: 1)
-                    )
-                    .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
-                    .padding(.horizontal, OPTheme.screenPadding)
-                }
-                .padding(.bottom, 24)
-
-                // Logout button
-                Button {
-                    showLogoutAlert = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .font(.system(size: 15))
-                        Text("Изход")
-                            .font(.system(size: 15, weight: .semibold))
-                    }
-                    .foregroundStyle(OPTheme.danger)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(OPTheme.dangerSoft.opacity(0.5), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                }
-                .padding(.horizontal, OPTheme.screenPadding)
-                .padding(.top, 8)
-                .padding(.bottom, 40)
+                    .padding(.bottom, 120)
             }
         }
         .background(OPTheme.bg)
         .navigationBarHidden(true)
         .alert("Излизане?", isPresented: $showLogoutAlert) {
             Button("Отказ", role: .cancel) { }
-            Button("Излез", role: .destructive) {
-                store.signOut()
-            }
+            Button("Излез", role: .destructive) { store.signOut() }
         } message: {
             Text("Сигурна ли си, че искаш да излезеш?")
         }
-        .sheet(isPresented: $showEditProfile) {
-            EditProfileSheet()
-        }
-        .sheet(isPresented: $showNotifications) {
-            NotificationsSettingsSheet()
-        }
-        .sheet(isPresented: $showPrivacy) {
-            PrivacySettingsSheet()
-        }
-        .sheet(isPresented: $showLanguage) {
-            LanguageSheet()
-        }
-        .sheet(isPresented: $showDarkMode) {
-            DarkModeSheet()
-        }
-        .sheet(isPresented: $showHelp) {
-            HelpSheet()
-        }
-        .sheet(isPresented: $showAbout) {
-            AboutSheet()
-        }
+        .sheet(isPresented: $showEditProfile) { EditProfileSheet() }
+        .sheet(isPresented: $showNotifications) { NotificationsSettingsSheet() }
+        .sheet(isPresented: $showPrivacy) { PrivacySettingsSheet() }
+        .sheet(isPresented: $showLanguage) { LanguageSheet() }
+        .sheet(isPresented: $showDarkMode) { DarkModeSheet() }
+        .sheet(isPresented: $showHelp) { HelpSheet() }
+        .sheet(isPresented: $showAbout) { AboutSheet() }
         .sheet(isPresented: $showInviteShare) {
             ShareSheet(activityItems: ["Хей! Свали OhPuppy и нека се разхождаме заедно с кучетата! \u{1F43E}\nhttps://ohpuppy.bg/download"])
         }
     }
 
-    private func profileStat(value: String, label: String) -> some View {
-        VStack(spacing: 2) {
+    // MARK: - Profile Hero
+
+    private var profileHero: some View {
+        ZStack(alignment: .bottom) {
+            // Gradient banner
+            ZStack {
+                LinearGradient(
+                    colors: [Color(hex: "1B4332"), Color(hex: "2D6A4F"), Color(hex: "40916C")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                // Subtle pattern overlay
+                Circle()
+                    .fill(Color.white.opacity(0.04))
+                    .frame(width: 200, height: 200)
+                    .offset(x: -80, y: -60)
+                Circle()
+                    .fill(Color.white.opacity(0.03))
+                    .frame(width: 160, height: 160)
+                    .offset(x: 100, y: 20)
+            }
+            .frame(height: 180)
+            .clipShape(
+                UnevenRoundedRectangle(
+                    bottomLeadingRadius: 32,
+                    bottomTrailingRadius: 32
+                )
+            )
+
+            // Avatar + name overlay
+            VStack(spacing: 12) {
+                ZStack(alignment: .bottomTrailing) {
+                    AsyncImage(url: URL(string: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&h=200&q=85")) { phase in
+                        if let image = phase.image {
+                            image.resizable().scaledToFill()
+                        } else {
+                            Circle().fill(OPTheme.surfaceSunken)
+                        }
+                    }
+                    .frame(width: 100, height: 100)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(OPTheme.bg, lineWidth: 4)
+                    )
+                    .shadow(color: OPTheme.primary.opacity(0.3), radius: 12, y: 4)
+
+                    Circle()
+                        .fill(OPTheme.primaryGradient)
+                        .frame(width: 30, height: 30)
+                        .overlay {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                        .overlay(Circle().stroke(OPTheme.bg, lineWidth: 3))
+                        .offset(x: 4, y: 4)
+                }
+                .onTapGesture { showEditProfile = true }
+
+                VStack(spacing: 4) {
+                    Text(store.ownerName)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(OPTheme.text)
+                    HStack(spacing: 4) {
+                        Image(systemName: "mappin")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("София, България")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundStyle(OPTheme.textSecondary)
+                }
+            }
+            .offset(y: 50)
+        }
+        .padding(.bottom, 50)
+    }
+
+    // MARK: - Stats Row
+
+    private var statsRow: some View {
+        HStack(spacing: 12) {
+            profileStatChip(value: "\(store.dogs.count)", label: "Кучета", icon: "pawprint.fill", gradient: OPTheme.primaryGradient)
+            profileStatChip(value: "\(store.vaccines.count)", label: "Ваксини", icon: "cross.vial.fill", gradient: OPTheme.mintGradient)
+            profileStatChip(value: "\(store.vetVisits.count)", label: "Прегледи", icon: "stethoscope", gradient: OPTheme.warmGradient)
+        }
+    }
+
+    private func profileStatChip(value: String, label: String, icon: String, gradient: LinearGradient) -> some View {
+        VStack(spacing: 8) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(gradient)
+                .frame(width: 28, height: 28)
+                .overlay {
+                    Image(systemName: icon)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
             Text(value)
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(OPTheme.text)
             Text(label)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(OPTheme.textSecondary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: OPTheme.cornerRadiusSmall, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: OPTheme.cornerRadiusSmall, style: .continuous)
+                .stroke(OPTheme.border, lineWidth: 1)
+        )
+        .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
     }
+
+    // MARK: - Settings Section
+
+    private struct SettingsItem {
+        let icon: String
+        let label: String
+        let color: Color
+        let action: () -> Void
+    }
+
+    private func settingsSection(title: String, items: [SettingsItem]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(OPTheme.textSecondary)
+                .tracking(0.5)
+                .padding(.horizontal, OPTheme.screenPadding)
+
+            VStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    settingsButton(icon: item.icon, label: item.label, color: item.color, action: item.action)
+                    if index < items.count - 1 {
+                        Divider().padding(.leading, 58)
+                    }
+                }
+            }
+            .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(OPTheme.border, lineWidth: 1)
+            )
+            .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
+            .padding(.horizontal, OPTheme.screenPadding)
+        }
+    }
+
+    // MARK: - Services Section
+
+    private var servicesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("УСЛУГИ")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(OPTheme.textSecondary)
+                .tracking(0.5)
+                .padding(.horizontal, OPTheme.screenPadding)
+
+            VStack(spacing: 0) {
+                NavigationLink(destination: DogWalkerView()) {
+                    settingsRow(icon: "figure.walk", label: "Разходчици", color: OPTheme.mint)
+                }
+                .buttonStyle(.plain)
+                Divider().padding(.leading, 58)
+                NavigationLink(destination: PlaydateView()) {
+                    settingsRow(icon: "heart.fill", label: "Playdate", color: OPTheme.rose)
+                }
+                .buttonStyle(.plain)
+                Divider().padding(.leading, 58)
+                settingsButton(icon: "person.2.fill", label: "Покани приятел", color: OPTheme.accent) {
+                    showInviteShare = true
+                }
+            }
+            .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(OPTheme.border, lineWidth: 1)
+            )
+            .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
+            .padding(.horizontal, OPTheme.screenPadding)
+        }
+    }
+
+    // MARK: - Logout
+
+    private var logoutButton: some View {
+        Button {
+            showLogoutAlert = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.system(size: 15))
+                Text("Изход")
+                    .font(.system(size: 15, weight: .semibold))
+            }
+            .foregroundStyle(OPTheme.danger)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(OPTheme.dangerSoft.opacity(0.5), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+    }
+
+    // MARK: - Helpers
 
     private func settingsButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(color.opacity(0.12))
-                    .frame(width: 32, height: 32)
-                    .overlay {
-                        Image(systemName: icon)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(color)
-                    }
-                Text(label)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(OPTheme.text)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(OPTheme.textTertiary)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            settingsRow(icon: icon, label: label, color: color)
         }
+    }
+
+    private func settingsRow(icon: String, label: String, color: Color) -> some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(color.opacity(0.12))
+                .frame(width: 32, height: 32)
+                .overlay {
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(color)
+                }
+            Text(label)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(OPTheme.text)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(OPTheme.textTertiary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
     }
 }
 

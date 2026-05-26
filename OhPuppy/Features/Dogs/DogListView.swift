@@ -3,12 +3,10 @@ import SwiftUI
 struct DogListView: View {
     @Environment(AppStore.self) private var store
     @State private var showAddDog = false
-    @State private var pressedId: String?
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVStack(alignment: .leading, spacing: 0) {
-                // Header
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Моите кучета")
@@ -37,8 +35,7 @@ struct DogListView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 20)
 
-                // Dog Cards
-                VStack(spacing: 14) {
+                VStack(spacing: 16) {
                     ForEach(store.dogs) { dog in
                         NavigationLink(destination: DogProfileView(dog: dog)) {
                             dogCard(dog)
@@ -47,7 +44,6 @@ struct DogListView: View {
                         .transition(.asymmetric(insertion: .scale.combined(with: .opacity), removal: .slide))
                     }
 
-                    // Add button
                     Button {
                         withAnimation(OPTheme.springAnimation) {
                             showAddDog = true
@@ -63,13 +59,13 @@ struct DogListView: View {
                         .frame(maxWidth: .infinity)
                         .padding(22)
                         .background(
-                            RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous)
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
                                 .strokeBorder(OPTheme.mint.opacity(0.4), style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
                         )
                     }
                 }
                 .padding(.horizontal, OPTheme.screenPadding)
-                .padding(.bottom, 40)
+                .padding(.bottom, 100)
             }
         }
         .background(OPTheme.bg)
@@ -80,7 +76,7 @@ struct DogListView: View {
     }
 
     private func dogCard(_ dog: Dog) -> some View {
-        HStack(spacing: 0) {
+        ZStack(alignment: .bottomLeading) {
             AsyncImage(url: dog.avatarURL) { phase in
                 if let image = phase.image {
                     image.resizable().scaledToFill()
@@ -88,48 +84,44 @@ struct DogListView: View {
                     Rectangle().fill(OPTheme.surfaceSunken)
                         .overlay {
                             Image(systemName: "pawprint.fill")
-                                .font(.system(size: 28))
-                                .foregroundStyle(OPTheme.mint.opacity(0.5))
+                                .font(.system(size: 40))
+                                .foregroundStyle(OPTheme.mint.opacity(0.3))
                         }
                 }
             }
-            .frame(width: 110, height: 120)
+            .frame(height: 200)
             .clipped()
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(dog.name)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
+            LinearGradient(
+                colors: [.black.opacity(0.7), .black.opacity(0.3), .clear],
+                startPoint: .bottom,
+                endPoint: .top
+            )
 
-                Text(dog.breed)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(OPTheme.textSecondary)
-
-                Text("\(dog.age) \u{00B7} \(String(format: "%.1f", dog.weight)) кг")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(OPTheme.textTertiary)
-                    .padding(.top, 1)
-
+            VStack(alignment: .leading, spacing: 6) {
                 vaccineStatus(for: dog)
-                    .padding(.top, 4)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(OPTheme.textTertiary)
-                .padding(.trailing, 14)
+                Text(dog.name)
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundStyle(.white)
+
+                HStack(spacing: 8) {
+                    Text(dog.breed)
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("·")
+                    Text(dog.age)
+                        .font(.system(size: 13, weight: .medium))
+                    Text("·")
+                    Text("\(String(format: "%.1f", dog.weight)) кг")
+                        .font(.system(size: 13, weight: .medium))
+                }
+                .foregroundStyle(.white.opacity(0.85))
+            }
+            .padding(16)
         }
-        .frame(minHeight: 120)
-        .background(OPTheme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous)
-                .stroke(OPTheme.border, lineWidth: 1)
-        )
-        .shadow(color: OPTheme.primary.opacity(0.06), radius: 10, y: 4)
+        .frame(height: 200)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: OPTheme.primary.opacity(0.12), radius: 12, y: 6)
     }
 
     @ViewBuilder
@@ -145,11 +137,24 @@ struct DogListView: View {
         }
 
         if hasOverdue {
-            StatPill(label: "Просрочена", icon: "exclamationmark.circle.fill", tone: .danger)
+            statusPill(label: "Просрочена", icon: "exclamationmark.circle.fill", color: OPTheme.danger)
         } else if hasSoon {
-            StatPill(label: "Скоро ваксина", icon: "clock.fill", tone: .warning)
+            statusPill(label: "Скоро ваксина", icon: "clock.fill", color: OPTheme.warning)
         } else {
-            StatPill(label: "В ред", icon: "checkmark.circle.fill", tone: .success)
+            statusPill(label: "В ред", icon: "checkmark.circle.fill", color: OPTheme.success)
         }
+    }
+
+    private func statusPill(label: String, icon: String, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .bold))
+            Text(label)
+                .font(.system(size: 11, weight: .bold))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(color.opacity(0.85), in: Capsule())
     }
 }
