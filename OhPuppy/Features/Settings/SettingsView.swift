@@ -44,7 +44,7 @@ struct SettingsView: View {
 
                 logoutButton
                     .padding(.horizontal, OPTheme.screenPadding)
-                    .padding(.bottom, 120)
+                    .padding(.bottom, 40)
             }
         }
         .background(OPTheme.bg)

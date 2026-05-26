@@ -201,6 +201,7 @@ struct Story: Identifiable, Codable {
     let caption: String
     let timestamp: Date
     var isSeen: Bool
+    var dogId: String?
 }
 
 // MARK: - Dog Status

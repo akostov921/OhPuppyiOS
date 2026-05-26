@@ -274,7 +274,7 @@ struct HomeView: View {
                     .padding(.bottom, 24)
 
                 healthSummary
-                    .padding(.bottom, 100)
+                    .padding(.bottom, 40)
             }
             .padding(.top, 6)
         }
@@ -323,6 +323,22 @@ struct HomeView: View {
                 Spacer()
 
                 HStack(spacing: 10) {
+                    NavigationLink(destination: ChatView()) {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(OPTheme.text)
+                                .frame(width: 40, height: 40)
+                                .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                            Circle()
+                                .fill(OPTheme.mint)
+                                .frame(width: 10, height: 10)
+                                .overlay(Circle().stroke(OPTheme.bg, lineWidth: 2))
+                                .offset(x: 2, y: -2)
+                        }
+                    }
+
                     NavigationLink(destination: NotificationsView()) {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "bell.fill")
@@ -420,14 +436,14 @@ struct HomeView: View {
 
                 // Other stories from store
                 ForEach(store.stories) { story in
-                    Button {
-                        if let idx = store.stories.firstIndex(where: { $0.id == story.id }) {
-                            storyViewerStories = store.stories
-                            storyViewerStartIndex = idx
-                            showStoryViewer = true
-                        }
-                    } label: {
-                        VStack(spacing: 6) {
+                    VStack(spacing: 6) {
+                        Button {
+                            if let idx = store.stories.firstIndex(where: { $0.id == story.id }) {
+                                storyViewerStories = store.stories
+                                storyViewerStartIndex = idx
+                                showStoryViewer = true
+                            }
+                        } label: {
                             AnimatedDogAvatar(
                                 url: story.photoURL,
                                 size: 60,
@@ -441,12 +457,22 @@ struct HomeView: View {
                                         .frame(width: 66, height: 66)
                                 }
                             }
+                        }
+                        .buttonStyle(.plain)
+
+                        if let dogId = story.dogId, let dog = nearbyDogsData.first(where: { $0.id == dogId }) {
+                            NavigationLink(destination: PublicDogProfileView(dog: dog)) {
+                                Text(story.dogName)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(OPTheme.text)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
                             Text(story.dogName)
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(OPTheme.text)
                         }
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, OPTheme.screenPadding)

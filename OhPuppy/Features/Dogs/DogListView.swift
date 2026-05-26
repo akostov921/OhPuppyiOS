@@ -65,7 +65,7 @@ struct DogListView: View {
                     }
                 }
                 .padding(.horizontal, OPTheme.screenPadding)
-                .padding(.bottom, 100)
+                .padding(.bottom, 40)
             }
         }
         .background(OPTheme.bg)

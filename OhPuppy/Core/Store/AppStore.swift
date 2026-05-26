@@ -262,10 +262,10 @@ final class AppStore {
             ]
 
             self.stories = [
-                Story(id: "s1", dogName: "Тоби", ownerName: "Петър", photoURL: URL(string: "https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=800&h=1200&q=85"), caption: "Първи плувен ден! 🌊", timestamp: Date().addingTimeInterval(-3600), isSeen: false),
-                Story(id: "s2", dogName: "Мила", ownerName: "Ана", photoURL: URL(string: "https://images.unsplash.com/photo-1612536057832-2ff7ead58194?auto=format&fit=crop&w=800&h=1200&q=85"), caption: "Нов шампоан, нов живот 🧴", timestamp: Date().addingTimeInterval(-7200), isSeen: false),
-                Story(id: "s3", dogName: "Локи", ownerName: "Марко", photoURL: URL(string: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=800&h=1200&q=85"), caption: "Витоша днес 🏔", timestamp: Date().addingTimeInterval(-10800), isSeen: false),
-                Story(id: "s4", dogName: "Чарли", ownerName: "Иван", photoURL: URL(string: "https://images.unsplash.com/photo-1605568427561-40dd23c2acea?auto=format&fit=crop&w=800&h=1200&q=85"), caption: "Снежен ден ❄️", timestamp: Date().addingTimeInterval(-14400), isSeen: false),
+                Story(id: "s1", dogName: "Тоби", ownerName: "Петър", photoURL: URL(string: "https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=800&h=1200&q=85"), caption: "Първи плувен ден! 🌊", timestamp: Date().addingTimeInterval(-3600), isSeen: false, dogId: "nd1"),
+                Story(id: "s2", dogName: "Мила", ownerName: "Ана", photoURL: URL(string: "https://images.unsplash.com/photo-1612536057832-2ff7ead58194?auto=format&fit=crop&w=800&h=1200&q=85"), caption: "Нов шампоан, нов живот 🧴", timestamp: Date().addingTimeInterval(-7200), isSeen: false, dogId: "nd2"),
+                Story(id: "s3", dogName: "Локи", ownerName: "Марко", photoURL: URL(string: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=800&h=1200&q=85"), caption: "Витоша днес 🏔", timestamp: Date().addingTimeInterval(-10800), isSeen: false, dogId: "nd3"),
+                Story(id: "s4", dogName: "Чарли", ownerName: "Иван", photoURL: URL(string: "https://images.unsplash.com/photo-1605568427561-40dd23c2acea?auto=format&fit=crop&w=800&h=1200&q=85"), caption: "Снежен ден ❄️", timestamp: Date().addingTimeInterval(-14400), isSeen: false, dogId: "nd4"),
             ]
 
             save()
