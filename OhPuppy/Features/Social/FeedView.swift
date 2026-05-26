@@ -122,11 +122,66 @@ struct FeedView: View {
                 isLiked: false,
                 avatarURL: "https://images.unsplash.com/photo-1612536057832-2ff7ead58194?auto=format&fit=crop&w=200&h=200&q=85"
             ),
+            FeedPost(
+                id: "4",
+                dogName: "Чарли",
+                dogBreed: "голдън ретривър",
+                ownerName: "Иван",
+                timeAgo: "12 ч.",
+                caption: "Днес Чарли навърши 2 години! Благодаря на всички за честитките. Утре правим парти в Южен парк, ако искате да дойдете — пишете ми!",
+                likes: 45,
+                comments: 12,
+                isLiked: false,
+                avatarURL: "https://images.unsplash.com/photo-1605568427561-40dd23c2acea?auto=format&fit=crop&w=200&h=200&q=85",
+                postType: .text
+            ),
+            FeedPost(
+                id: "5",
+                dogName: "Тоби",
+                dogBreed: "бордър коли",
+                ownerName: "Стефан",
+                timeAgo: "1 д.",
+                caption: "Коя е любимата храна на вашето куче? Тоби обожава сьомга, но искам да пробвам нещо ново.",
+                likes: 18,
+                comments: 24,
+                isLiked: false,
+                avatarURL: "https://images.unsplash.com/photo-1551717743-49959800b1f6?auto=format&fit=crop&w=200&h=200&q=85",
+                postType: .question
+            ),
+            FeedPost(
+                id: "6",
+                dogName: "Локи",
+                dogBreed: "френски булдог",
+                ownerName: "Гери",
+                timeAgo: "2 д.",
+                caption: "Къде предпочитате да се разхождате?",
+                likes: 32,
+                comments: 8,
+                isLiked: false,
+                avatarURL: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=200&h=200&q=85",
+                postType: .poll,
+                pollOptions: [
+                    PollOption(id: "po1", text: "Южен парк", votes: 42),
+                    PollOption(id: "po2", text: "Борисова градина", votes: 38),
+                    PollOption(id: "po3", text: "Витоша", votes: 25),
+                    PollOption(id: "po4", text: "Западен парк", votes: 15),
+                ]
+            ),
         ]
     }
 }
 
 // MARK: - Feed Post Model
+
+enum FeedPostType {
+    case photo, text, question, poll
+}
+
+struct PollOption: Identifiable {
+    let id: String
+    let text: String
+    var votes: Int
+}
 
 struct FeedPost: Identifiable {
     let id: String
@@ -134,15 +189,18 @@ struct FeedPost: Identifiable {
     let dogBreed: String
     let ownerName: String
     let timeAgo: String
-    let photoID: String
+    var photoID: String = ""
     let caption: String
     let likes: Int
     let comments: Int
     let isLiked: Bool
     let avatarURL: String
+    var postType: FeedPostType = .photo
+    var pollOptions: [PollOption]?
 
     var photoURL: URL? {
-        URL(string: "https://images.unsplash.com/photo-\(photoID)?auto=format&fit=crop&w=800&h=800&q=85")
+        guard !photoID.isEmpty else { return nil }
+        return URL(string: "https://images.unsplash.com/photo-\(photoID)?auto=format&fit=crop&w=800&h=800&q=85")
     }
 }
 
@@ -226,25 +284,108 @@ struct FeedPostCard: View {
             .padding(.horizontal, OPTheme.screenPadding)
             .padding(.vertical, 10)
 
-            // Photo
-            AsyncImage(url: post.photoURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 360)
-                        .clipped()
-                default:
-                    Rectangle()
-                        .fill(OPTheme.surfaceSunken)
-                        .frame(height: 360)
-                        .overlay {
-                            ProgressView()
-                                .tint(OPTheme.mint)
-                        }
+            // Content by type
+            switch post.postType {
+            case .photo:
+                AsyncImage(url: post.photoURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                            .frame(maxWidth: .infinity).frame(height: 360).clipped()
+                    default:
+                        Rectangle().fill(OPTheme.surfaceSunken).frame(height: 360)
+                            .overlay { ProgressView().tint(OPTheme.mint) }
+                    }
                 }
+
+            case .text:
+                Text(post.caption)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(OPTheme.text)
+                    .lineSpacing(4)
+                    .padding(.horizontal, OPTheme.screenPadding)
+                    .padding(.vertical, 16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(OPTheme.primarySoft.opacity(0.3))
+                            .padding(.horizontal, 12)
+                    )
+
+            case .question:
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "questionmark.bubble.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(OPTheme.accent)
+                        Text("Въпрос")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(OPTheme.accent)
+                            .textCase(.uppercase)
+                            .tracking(0.5)
+                    }
+                    Text(post.caption)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(OPTheme.text)
+                        .lineSpacing(3)
+                    Button {} label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrowshape.turn.up.left.fill")
+                                .font(.system(size: 12))
+                            Text("Отговори")
+                                .font(.system(size: 13, weight: .bold))
+                        }
+                        .foregroundStyle(OPTheme.mint)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(OPTheme.mintSoft, in: Capsule())
+                    }
+                }
+                .padding(.horizontal, OPTheme.screenPadding)
+                .padding(.vertical, 14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(OPTheme.accentSoft.opacity(0.3))
+                        .padding(.horizontal, 12)
+                )
+
+            case .poll:
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(post.caption)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(OPTheme.text)
+
+                    if let options = post.pollOptions {
+                        let totalVotes = options.reduce(0) { $0 + $1.votes }
+                        ForEach(options) { option in
+                            let pct = totalVotes > 0 ? Double(option.votes) / Double(totalVotes) : 0
+                            HStack(spacing: 10) {
+                                Text(option.text)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(OPTheme.text)
+                                    .frame(width: 120, alignment: .leading)
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        Capsule().fill(OPTheme.surfaceSunken).frame(height: 24)
+                                        Capsule().fill(OPTheme.mintGradient).frame(width: geo.size.width * pct, height: 24)
+                                    }
+                                }
+                                .frame(height: 24)
+                                Text("\(Int(pct * 100))%")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(OPTheme.textSecondary)
+                                    .frame(width: 36, alignment: .trailing)
+                            }
+                        }
+
+                        Text("\(totalVotes) гласа")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(OPTheme.textTertiary)
+                    }
+                }
+                .padding(.horizontal, OPTheme.screenPadding)
+                .padding(.vertical, 14)
             }
 
             // Action bar
@@ -301,14 +442,16 @@ struct FeedPostCard: View {
             .padding(.horizontal, OPTheme.screenPadding)
             .padding(.vertical, 10)
 
-            // Caption
+            // Caption (only for photo posts)
             VStack(alignment: .leading, spacing: 6) {
-                (Text(post.dogName)
-                    .font(.system(size: 14, weight: .bold))
-                 + Text(" \(post.caption)")
-                    .font(.system(size: 14, weight: .regular)))
-                    .foregroundStyle(OPTheme.text)
-                    .lineLimit(2)
+                if post.postType == .photo {
+                    (Text(post.dogName)
+                        .font(.system(size: 14, weight: .bold))
+                     + Text(" \(post.caption)")
+                        .font(.system(size: 14, weight: .regular)))
+                        .foregroundStyle(OPTheme.text)
+                        .lineLimit(2)
+                }
 
                 if post.comments > 0 {
                     Button { showCommentSheet = true } label: {

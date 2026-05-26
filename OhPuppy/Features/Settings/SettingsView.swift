@@ -31,6 +31,42 @@ struct SettingsView: View {
                 ])
                 .padding(.bottom, 20)
 
+                // Public profile preview
+                NavigationLink(destination: OwnPublicProfileView()) {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(OPTheme.mintGradient)
+                            .frame(width: 36, height: 36)
+                            .overlay {
+                                Image(systemName: "eye.fill")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Виж публичния си профил")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(OPTheme.text)
+                            Text("Как те виждат другите")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(OPTheme.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(OPTheme.textTertiary)
+                    }
+                    .padding(14)
+                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(OPTheme.mint.opacity(0.3), lineWidth: 1)
+                    )
+                    .shadow(color: OPTheme.mint.opacity(0.06), radius: 8, y: 3)
+                }
+                .buttonStyle(PressableCardStyle())
+                .padding(.horizontal, OPTheme.screenPadding)
+                .padding(.bottom, 20)
+
                 servicesSection
                     .padding(.bottom, 20)
 
