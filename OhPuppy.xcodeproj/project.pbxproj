@@ -47,6 +47,7 @@
 		F6A03916132E5299A1A05B51 /* VetVisitsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8115BDA3305C7166D0C2DA62 /* VetVisitsView.swift */; };
 		42757F63047A4BE4BF47CCF2 /* MarketplaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47A6DDF1A3D14276BC820A53 /* MarketplaceView.swift */; };
 		7AFD40B7DE7B4FD085A6FBE5 /* OwnPublicProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E609FF01F64F4AA68B6EE7EF /* OwnPublicProfileView.swift */; };
+		2EC28EB9989D4489B699D1C2 /* SheltersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FE9BFEFCCDC45D8A910DDFF /* SheltersView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -91,6 +92,7 @@
 		F287D868FBB8F4ED7AB6031A /* VaccineListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaccineListView.swift; sourceTree = "<group>"; };
 		47A6DDF1A3D14276BC820A53 /* MarketplaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceView.swift; sourceTree = "<group>"; };
 		E609FF01F64F4AA68B6EE7EF /* OwnPublicProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnPublicProfileView.swift; sourceTree = "<group>"; };
+		3FE9BFEFCCDC45D8A910DDFF /* SheltersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheltersView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -313,6 +315,7 @@
 			isa = PBXGroup;
 			children = (
 				47A6DDF1A3D14276BC820A53 /* MarketplaceView.swift */,
+				3FE9BFEFCCDC45D8A910DDFF /* SheltersView.swift */,
 			);
 			path = Marketplace;
 			sourceTree = "<group>";
@@ -389,6 +392,7 @@
 			files = (
 				5ABDFB3070B62881CB4D11C2 /* AddDogView.swift in Sources */,
 				42757F63047A4BE4BF47CCF2 /* MarketplaceView.swift in Sources */,
+				2EC28EB9989D4489B699D1C2 /* SheltersView.swift in Sources */,
 				7AFD40B7DE7B4FD085A6FBE5 /* OwnPublicProfileView.swift in Sources */,
 				B414EE61446AD3318181909A /* AppStore.swift in Sources */,
 				08C109A163C0F6583BA7E4A6 /* BreedInfoView.swift in Sources */,

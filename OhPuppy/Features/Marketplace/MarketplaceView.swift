@@ -87,6 +87,10 @@ struct MarketplaceView: View {
                 categoryChips
                     .padding(.bottom, 20)
 
+                shelterBanner
+                    .padding(.horizontal, OPTheme.screenPadding)
+                    .padding(.bottom, 20)
+
                 brandCorner
                     .padding(.bottom, 24)
 
@@ -173,6 +177,50 @@ struct MarketplaceView: View {
             }
             .padding(.horizontal, OPTheme.screenPadding)
         }
+    }
+
+    // MARK: - Shelter Banner
+
+    private var shelterBanner: some View {
+        NavigationLink(destination: SheltersView()) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(LinearGradient(colors: [OPTheme.rose, OPTheme.accent], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 52, height: 52)
+                    Image(systemName: "heart.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Осинови кученце")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(OPTheme.text)
+                    Text("6 кучета търсят дом")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(OPTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(OPTheme.rose)
+                    .frame(width: 28, height: 28)
+                    .background(OPTheme.roseSoft, in: Circle())
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(OPTheme.roseSoft.opacity(0.4))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(OPTheme.rose.opacity(0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PressableCardStyle())
     }
 
     // MARK: - Brand Corner

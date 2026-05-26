@@ -327,15 +327,7 @@ struct HomeView: View {
                 OPWordmark(size: 15)
                 Spacer()
 
-                HStack(spacing: 10) {
-                    Button { showHomeCustomize = true } label: {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(OPTheme.text)
-                            .frame(width: 40, height: 40)
-                            .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-
+                HStack(spacing: 8) {
                     NavigationLink(destination: ChatView()) {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "bubble.left.and.bubble.right.fill")
@@ -370,16 +362,22 @@ struct HomeView: View {
                     }
                     .simultaneousGesture(TapGesture().onEnded { bellTapped.toggle() })
 
-                    AsyncImage(url: URL(string: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=85")) { phase in
-                        if let image = phase.image {
-                            image.resizable().scaledToFill()
-                        } else {
-                            Circle().fill(OPTheme.accentSoft)
+                    Menu {
+                        Button { showHomeCustomize = true } label: {
+                            Label("Подреди началния екран", systemImage: "slider.horizontal.3")
                         }
+                    } label: {
+                        AsyncImage(url: URL(string: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=85")) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFill()
+                            } else {
+                                Circle().fill(OPTheme.accentSoft)
+                            }
+                        }
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(OPTheme.avatarRingGradient, lineWidth: 2))
                     }
-                    .frame(width: 40, height: 40)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(OPTheme.avatarRingGradient, lineWidth: 2))
                 }
             }
 
