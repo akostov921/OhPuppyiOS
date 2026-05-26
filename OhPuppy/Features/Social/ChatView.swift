@@ -275,19 +275,39 @@ struct ChatRoomView: View {
 
     private func sendMessage() {
         guard !inputText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        let now = Date()
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
-        let timeStr = formatter.string(from: now)
 
         let newMsg = ChatMessage(
             id: UUID().uuidString,
             text: inputText,
-            time: timeStr,
+            time: formatter.string(from: Date()),
             isMine: true
         )
         messages.append(newMsg)
+        let sentText = inputText
         inputText = ""
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Double.random(in: 1.5...3.0)))
+            let replies = [
+                "Супер! \u{1F44D}",
+                "Добре, разбрах!",
+                "Хаха, да! \u{1F602}",
+                "Ще помисля и ще ти пиша.",
+                "Страхотно! Кога ти е удобно?",
+                "Рекс също ще се радва!",
+                "Идеално, чудесна идея!",
+                "\u{1F43E} Чудесно!",
+            ]
+            let reply = ChatMessage(
+                id: UUID().uuidString,
+                text: replies.randomElement() ?? "OK!",
+                time: formatter.string(from: Date()),
+                isMine: false
+            )
+            withAnimation { messages.append(reply) }
+        }
     }
 
     private func loadMockMessages() {
