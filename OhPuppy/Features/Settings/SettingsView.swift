@@ -67,6 +67,42 @@ struct SettingsView: View {
                 .padding(.horizontal, OPTheme.screenPadding)
                 .padding(.bottom, 20)
 
+                // Platform registration
+                NavigationLink(destination: PlatformRegistrationView()) {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(OPTheme.accentGradient)
+                            .frame(width: 36, height: 36)
+                            .overlay {
+                                Image(systemName: "building.2.crop.circle.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Партньорска програма")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(OPTheme.text)
+                            Text("Ветеринар, бранд, разходчик, приют")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(OPTheme.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(OPTheme.textTertiary)
+                    }
+                    .padding(14)
+                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(OPTheme.accent.opacity(0.3), lineWidth: 1)
+                    )
+                    .shadow(color: OPTheme.accent.opacity(0.06), radius: 8, y: 3)
+                }
+                .buttonStyle(PressableCardStyle())
+                .padding(.horizontal, OPTheme.screenPadding)
+                .padding(.bottom, 20)
+
                 servicesSection
                     .padding(.bottom, 20)
 

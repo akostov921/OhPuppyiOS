@@ -48,6 +48,7 @@
 		42757F63047A4BE4BF47CCF2 /* MarketplaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47A6DDF1A3D14276BC820A53 /* MarketplaceView.swift */; };
 		7AFD40B7DE7B4FD085A6FBE5 /* OwnPublicProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E609FF01F64F4AA68B6EE7EF /* OwnPublicProfileView.swift */; };
 		2EC28EB9989D4489B699D1C2 /* SheltersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FE9BFEFCCDC45D8A910DDFF /* SheltersView.swift */; };
+		89F6AF6A993E46829055D1C8 /* PlatformRegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 586064F3D42C4C189125E13D /* PlatformRegistrationView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -93,6 +94,7 @@
 		47A6DDF1A3D14276BC820A53 /* MarketplaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceView.swift; sourceTree = "<group>"; };
 		E609FF01F64F4AA68B6EE7EF /* OwnPublicProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnPublicProfileView.swift; sourceTree = "<group>"; };
 		3FE9BFEFCCDC45D8A910DDFF /* SheltersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheltersView.swift; sourceTree = "<group>"; };
+		586064F3D42C4C189125E13D /* PlatformRegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformRegistrationView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -152,6 +154,7 @@
 			isa = PBXGroup;
 			children = (
 				243B73CCA3C1D0F487A73304 /* SettingsView.swift */,
+				586064F3D42C4C189125E13D /* PlatformRegistrationView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -392,6 +395,7 @@
 			files = (
 				5ABDFB3070B62881CB4D11C2 /* AddDogView.swift in Sources */,
 				42757F63047A4BE4BF47CCF2 /* MarketplaceView.swift in Sources */,
+				89F6AF6A993E46829055D1C8 /* PlatformRegistrationView.swift in Sources */,
 				2EC28EB9989D4489B699D1C2 /* SheltersView.swift in Sources */,
 				7AFD40B7DE7B4FD085A6FBE5 /* OwnPublicProfileView.swift in Sources */,
 				B414EE61446AD3318181909A /* AppStore.swift in Sources */,

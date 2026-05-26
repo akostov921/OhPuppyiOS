@@ -155,6 +155,21 @@ struct AddVaccineView: View {
     @State private var clinic = ""
     @State private var verificationCode = ""
     @State private var showVetInvite = false
+    @State private var showClinicSuggestions = false
+
+    private let knownClinics = [
+        "Ветеринарна клиника Лапа — ул. Витоша 45, София",
+        "VetCare София — бул. България 102",
+        "Зоо Вита — ул. Граф Игнатиев 12, София",
+        "Четири лапи — ул. Цар Борис III 78, Пловдив",
+        "Happy Paws Clinic — ул. Шипка 22, Варна",
+        "Д-р Петров Вет — ул. Раковски 66, София",
+    ]
+
+    private var filteredClinics: [String] {
+        guard !clinic.isEmpty else { return [] }
+        return knownClinics.filter { $0.localizedCaseInsensitiveContains(clinic) }
+    }
 
     var body: some View {
         NavigationStack {
@@ -216,7 +231,56 @@ struct AddVaccineView: View {
                     }
 
                     formField("Ветеринар", text: $vet, placeholder: "Д-р Илиян Иванов")
-                    formField("Клиника", text: $clinic, placeholder: "Ветеринарна клиника Лапа")
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("КЛИНИКА")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(OPTheme.textSecondary)
+                            .tracking(0.5)
+                        TextField("Търси клиника...", text: $clinic)
+                            .font(.system(size: 16, weight: .medium))
+                            .padding(14)
+                            .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .onChange(of: clinic) { _, newValue in
+                                showClinicSuggestions = !newValue.isEmpty && !filteredClinics.isEmpty
+                            }
+
+                        if showClinicSuggestions {
+                            VStack(spacing: 0) {
+                                ForEach(filteredClinics.prefix(3), id: \.self) { suggestion in
+                                    Button {
+                                        let parts = suggestion.components(separatedBy: " — ")
+                                        clinic = parts.first ?? suggestion
+                                        showClinicSuggestions = false
+                                    } label: {
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "mappin.circle.fill")
+                                                .font(.system(size: 14))
+                                                .foregroundStyle(OPTheme.mint)
+                                            Text(suggestion)
+                                                .font(.system(size: 13, weight: .medium))
+                                                .foregroundStyle(OPTheme.text)
+                                                .lineLimit(1)
+                                            Spacer()
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 10)
+                                    }
+                                    Divider().padding(.leading, 34)
+                                }
+                            }
+                            .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(OPTheme.mint.opacity(0.3), lineWidth: 1)
+                            )
+                            .shadow(color: OPTheme.primary.opacity(0.06), radius: 8, y: 3)
+                        }
+
+                        Text("Не намираш клиниката? Напиши я ръчно.")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(OPTheme.textTertiary)
+                    }
 
                     // Verification section
                     VStack(alignment: .leading, spacing: 10) {

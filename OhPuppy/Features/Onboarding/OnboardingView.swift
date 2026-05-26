@@ -132,32 +132,65 @@ struct OnboardingView: View {
                 Circle()
                     .fill(
                         RadialGradient(
-                            colors: [OPTheme.mint.opacity(0.2), OPTheme.primaryLight.opacity(0.08), .clear],
-                            center: .center, startRadius: 20, endRadius: 100
+                            colors: [OPTheme.mint.opacity(0.15), OPTheme.primaryLight.opacity(0.06), .clear],
+                            center: .center, startRadius: 30, endRadius: 120
                         )
                     )
-                    .frame(width: 180, height: 180)
+                    .frame(width: 220, height: 220)
 
                 ZStack {
-                    Image(systemName: "pawprint.fill")
-                        .font(.system(size: 64))
+                    // Dog scene: house + dog + sun + tree
+                    Image(systemName: "sun.max.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(OPTheme.accent.opacity(0.5))
+                        .offset(x: 50, y: -60)
+                        .offset(y: pawFloatOffset * -0.3)
+                        .symbolEffect(.variableColor)
+
+                    Image(systemName: "tree.fill")
+                        .font(.system(size: 30))
+                        .foregroundStyle(OPTheme.mint.opacity(0.4))
+                        .offset(x: -55, y: 10)
+                        .offset(y: pawFloatOffset * 0.2)
+
+                    Image(systemName: "house.fill")
+                        .font(.system(size: 36))
+                        .foregroundStyle(OPTheme.primary.opacity(0.3))
+                        .offset(x: 45, y: 15)
+                        .offset(y: pawFloatOffset * 0.15)
+
+                    // Main dog
+                    Image(systemName: "dog.fill")
+                        .font(.system(size: 72))
                         .foregroundStyle(OPTheme.primaryGradient)
                         .symbolEffect(.breathe)
-                        .offset(y: pawFloatOffset * 0.5)
+                        .offset(y: pawFloatOffset * 0.4)
+
+                    // Hearts floating up
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(OPTheme.rose.opacity(0.5))
+                        .offset(x: 30, y: -40)
+                        .offset(y: pawFloatOffset * -0.6)
+
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(OPTheme.rose.opacity(0.3))
+                        .offset(x: -25, y: -50)
+                        .offset(y: pawFloatOffset * -0.8)
+
+                    // Paw trail
+                    Image(systemName: "pawprint.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(OPTheme.mint.opacity(0.3))
+                        .offset(x: -35, y: 40)
+                        .rotationEffect(.degrees(-30))
 
                     Image(systemName: "pawprint.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(OPTheme.mint.opacity(0.4))
-                        .offset(x: -40, y: -30)
-                        .rotationEffect(.degrees(-25))
-                        .offset(y: pawFloatOffset * 0.3)
-
-                    Image(systemName: "pawprint.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(OPTheme.accent.opacity(0.3))
-                        .offset(x: 45, y: -20)
-                        .rotationEffect(.degrees(30))
-                        .offset(y: pawFloatOffset * -0.4)
+                        .font(.system(size: 10))
+                        .foregroundStyle(OPTheme.mint.opacity(0.2))
+                        .offset(x: -55, y: 50)
+                        .rotationEffect(.degrees(-30))
                 }
             }
 
@@ -210,17 +243,40 @@ struct OnboardingView: View {
         .padding(.horizontal, OPTheme.screenPadding)
     }
 
+    private let bubblePhotos = [
+        "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&h=150&q=85",
+        "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=150&h=150&q=85",
+        "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=150&h=150&q=85",
+        "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=150&h=150&q=85",
+        "https://images.unsplash.com/photo-1605568427561-40dd23c2acea?auto=format&fit=crop&w=150&h=150&q=85",
+    ]
+
     private func featureBubble(icon: String, color: Color, size: CGFloat, x: CGFloat, y: CGFloat, delay: Double) -> some View {
-        Circle()
-            .fill(color.opacity(0.15))
-            .frame(width: size, height: size)
-            .overlay {
-                Image(systemName: icon)
-                    .font(.system(size: size * 0.35, weight: .semibold))
-                    .foregroundStyle(color)
+        let photoIndex = Int(abs(x + y)) % bubblePhotos.count
+        return ZStack {
+            AsyncImage(url: URL(string: bubblePhotos[photoIndex])) { phase in
+                if let image = phase.image {
+                    image.resizable().scaledToFill()
+                } else {
+                    Circle().fill(color.opacity(0.15))
+                }
             }
-            .offset(x: x, y: y + pawFloatOffset * CGFloat(delay + 0.3))
-            .shadow(color: color.opacity(0.15), radius: 8, y: 3)
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(color.opacity(0.4), lineWidth: 2))
+
+            Circle()
+                .fill(color.opacity(0.3))
+                .frame(width: size * 0.4, height: size * 0.4)
+                .overlay {
+                    Image(systemName: icon)
+                        .font(.system(size: size * 0.18, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .offset(x: size * 0.3, y: size * 0.3)
+        }
+        .offset(x: x, y: y + pawFloatOffset * CGFloat(delay + 0.3))
+        .shadow(color: color.opacity(0.2), radius: 10, y: 4)
     }
 
     private func featureLabel(icon: String, text: String, sub: String, color: Color) -> some View {

@@ -88,10 +88,16 @@ struct PlaydateView: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Playdate")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
-                Text("\(dogs.count) кучета наблизо")
+                HStack(spacing: 6) {
+                    Text("Playdate")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundStyle(OPTheme.text)
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(OPTheme.rose)
+                        .symbolEffect(.pulse)
+                }
+                Text("\(dogs.count) кучета търсят приятел")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(OPTheme.textSecondary)
             }
@@ -99,9 +105,9 @@ struct PlaydateView: View {
             Button { showFilterSheet = true } label: {
                 Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(OPTheme.primary)
+                    .foregroundStyle(OPTheme.rose)
                     .frame(width: 40, height: 40)
-                    .background(OPTheme.primarySoft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(OPTheme.roseSoft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
     }
@@ -140,18 +146,25 @@ struct PlaydateView: View {
                                 .foregroundStyle(.white.opacity(0.85))
                         }
                         Spacer()
-                        // Compatibility badge
-                        VStack(spacing: 2) {
-                            Text("\(dog.compatibility)%")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundStyle(.white)
-                            Text("съвместимост")
-                                .font(.system(size: 9, weight: .semibold))
+                        VStack(spacing: 4) {
+                            ZStack {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 44))
+                                    .foregroundStyle(
+                                        LinearGradient(colors: [OPTheme.rose, OPTheme.accent], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    )
+                                    .shadow(color: OPTheme.rose.opacity(0.4), radius: 8, y: 2)
+                                Text("\(dog.compatibility)")
+                                    .font(.system(size: 16, weight: .black))
+                                    .foregroundStyle(.white)
+                                    .offset(y: -1)
+                            }
+                            Text("match")
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(.white.opacity(0.8))
+                                .textCase(.uppercase)
+                                .tracking(1)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(OPTheme.mint.opacity(0.85), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                 }
                 .padding(16)
@@ -189,30 +202,51 @@ struct PlaydateView: View {
     // MARK: - Action Buttons
 
     private var actionButtons: some View {
-        HStack(spacing: 40) {
-            // Skip button
-            Button {
-                skipDog()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(OPTheme.textSecondary)
-                    .frame(width: 64, height: 64)
-                    .background(OPTheme.surfaceSunken, in: Circle())
-                    .overlay(Circle().stroke(OPTheme.border, lineWidth: 1))
-                    .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
+        HStack(spacing: 24) {
+            Button { skipDog() } label: {
+                VStack(spacing: 6) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(OPTheme.textSecondary)
+                        .frame(width: 60, height: 60)
+                        .background(OPTheme.surfaceSunken, in: Circle())
+                        .overlay(Circle().stroke(OPTheme.border, lineWidth: 1))
+                    Text("Друг път")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(OPTheme.textTertiary)
+                }
             }
 
-            // Invite button
-            Button {
-                inviteDog()
-            } label: {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 64, height: 64)
-                    .background(OPTheme.mintGradient, in: Circle())
-                    .shadow(color: OPTheme.mint.opacity(0.4), radius: 10, y: 4)
+            Button { inviteDog() } label: {
+                VStack(spacing: 6) {
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(colors: [OPTheme.rose, OPTheme.accent], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 72, height: 72)
+                            .shadow(color: OPTheme.rose.opacity(0.4), radius: 12, y: 4)
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundStyle(.white)
+                            .symbolEffect(.bounce, value: showInviteSent)
+                    }
+                    Text("Покани")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(OPTheme.rose)
+                }
+            }
+
+            Button { inviteDog() } label: {
+                VStack(spacing: 6) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(OPTheme.accent)
+                        .frame(width: 60, height: 60)
+                        .background(OPTheme.accentSoft, in: Circle())
+                        .overlay(Circle().stroke(OPTheme.accent.opacity(0.3), lineWidth: 1))
+                    Text("Супер")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(OPTheme.accent)
+                }
             }
         }
     }
