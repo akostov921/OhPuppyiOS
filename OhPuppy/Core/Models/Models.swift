@@ -55,6 +55,21 @@ struct Vaccine: Identifiable, Codable {
     var vet: String?
     var clinic: String?
     var notes: String?
+    var verificationCode: String?
+    var verifiedByVet: String?
+    var isVerified: Bool { verificationCode != nil }
+}
+
+enum UserRole: String, CaseIterable, Codable {
+    case owner, vet, brand, walker
+    var label: String {
+        switch self {
+        case .owner: "Собственик"
+        case .vet: "Ветеринар"
+        case .brand: "Бранд"
+        case .walker: "Разходчик"
+        }
+    }
 }
 
 enum VaccineType: String, CaseIterable, Identifiable, Codable {

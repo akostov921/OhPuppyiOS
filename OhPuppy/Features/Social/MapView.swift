@@ -12,6 +12,14 @@ struct MapDogPin: Identifiable {
     let nearbyDogId: String?
 }
 
+struct MapWalkerPin: Identifiable {
+    let id: String
+    let name: String
+    let rating: Double
+    let pricePerWalk: Int
+    let coordinate: CLLocationCoordinate2D
+}
+
 struct MapView: View {
     @Environment(AppStore.self) private var store
     @State private var locationManager = LocationManager()
@@ -31,8 +39,10 @@ struct MapView: View {
     @State private var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
     @AppStorage("inviteBannerDismissed") private var inviteBannerDismissed = false
     @State private var showInviteShare = false
+    @State private var selectedWalker: MapWalkerPin?
+    @State private var showWalkerPayment = false
 
-    private let filters = ["Всички", "Кучета", "Места", "Събития", "Изгубени"]
+    private let filters = ["Всички", "Кучета", "Разходчици", "Места", "Събития", "Изгубени"]
 
     private var mapDogs: [MapDogPin] {
         guard let center = locationManager.userLocation else {
@@ -40,6 +50,21 @@ struct MapView: View {
             return generatePins(around: sofia)
         }
         return generatePins(around: center)
+    }
+
+    private var mapWalkers: [MapWalkerPin] {
+        guard let center = locationManager.userLocation else {
+            let sofia = CLLocationCoordinate2D(latitude: 42.6977, longitude: 23.3219)
+            return generateWalkerPins(around: sofia)
+        }
+        return generateWalkerPins(around: center)
+    }
+
+    private func generateWalkerPins(around center: CLLocationCoordinate2D) -> [MapWalkerPin] {
+        [
+            MapWalkerPin(id: "w1", name: "Мария К.", rating: 4.9, pricePerWalk: 25, coordinate: CLLocationCoordinate2D(latitude: center.latitude + 0.004, longitude: center.longitude - 0.002)),
+            MapWalkerPin(id: "w2", name: "Георги П.", rating: 4.7, pricePerWalk: 20, coordinate: CLLocationCoordinate2D(latitude: center.latitude - 0.002, longitude: center.longitude + 0.005)),
+        ]
     }
 
     private func generatePins(around center: CLLocationCoordinate2D) -> [MapDogPin] {
@@ -115,6 +140,13 @@ struct MapView: View {
                         .padding(.bottom, 8)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+                if let walker = selectedWalker {
+                    walkerCard(walker)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.horizontal, OPTheme.screenPadding)
+                        .padding(.bottom, 16)
+                }
+
                 if selectedDog != nil {
                     nearbyDogCard
                         .padding(.horizontal, OPTheme.screenPadding)
@@ -170,9 +202,33 @@ struct MapView: View {
                     Button {
                         withAnimation(OPTheme.quickSpring) {
                             selectedDog = dog
+                            selectedWalker = nil
                         }
                     } label: {
                         mapPinLabel(dog: dog)
+                    }
+                }
+            }
+
+            if selectedFilter == "Всички" || selectedFilter == "Разходчици" {
+                ForEach(mapWalkers) { walker in
+                    Annotation(walker.name, coordinate: walker.coordinate) {
+                        Button {
+                            withAnimation(OPTheme.quickSpring) {
+                                selectedWalker = walker
+                                selectedDog = nil
+                            }
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(OPTheme.accentGradient)
+                                    .frame(width: 40, height: 40)
+                                    .shadow(color: OPTheme.accent.opacity(0.4), radius: 6, y: 3)
+                                Image(systemName: "figure.walk")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                        }
                     }
                 }
             }
@@ -269,6 +325,7 @@ struct MapView: View {
                     Button {
                         withAnimation(OPTheme.quickSpring) { selectedFilter = filter }
                         switch filter {
+                        case "Разходчици": showDogWalkers = true
                         case "Места": showPlaces = true
                         case "Събития": showEvents = true
                         case "Изгубени": showLostDogAlert = true
@@ -340,6 +397,66 @@ struct MapView: View {
         .padding(12)
         .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: OPTheme.cornerRadiusSmall, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+    }
+
+    // MARK: - Nearby Dog Card
+
+    // MARK: - Walker Card
+
+    private func walkerCard(_ walker: MapWalkerPin) -> some View {
+        HStack(spacing: 14) {
+            Circle()
+                .fill(OPTheme.accentGradient)
+                .frame(width: 52, height: 52)
+                .overlay {
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(walker.name)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(OPTheme.text)
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(OPTheme.accent)
+                    Text(String(format: "%.1f", walker.rating))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(OPTheme.text)
+                    Text("·")
+                    Text("\(walker.pricePerWalk) лв/разходка")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(OPTheme.textSecondary)
+                }
+            }
+
+            Spacer()
+
+            Button {
+                showWalkerPayment = true
+            } label: {
+                Text("Плати")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(OPTheme.primaryGradient, in: Capsule())
+            }
+        }
+        .padding(14)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(OPTheme.border, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
+        .alert("Плащане", isPresented: $showWalkerPayment) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Функцията за плащане с карта ще бъде налична скоро. Ще можете да плащате директно на \(walker.name).")
+        }
     }
 
     // MARK: - Nearby Dog Card
@@ -427,13 +544,12 @@ struct MapView: View {
 struct FilterRadiusSheet: View {
     @Binding var selectedRadius: Int
     @Environment(\.dismiss) private var dismiss
-
-    private let radii = [1, 5, 10]
+    @State private var sliderValue: Double = 5
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                VStack(spacing: 12) {
+            VStack(spacing: 28) {
+                VStack(spacing: 8) {
                     Text("Радиус на търсене")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(OPTheme.text)
@@ -443,28 +559,52 @@ struct FilterRadiusSheet: View {
                 }
                 .padding(.top, 20)
 
-                HStack(spacing: 16) {
-                    ForEach(radii, id: \.self) { radius in
-                        Button {
-                            withAnimation(OPTheme.quickSpring) {
-                                selectedRadius = radius
-                            }
-                        } label: {
-                            VStack(spacing: 8) {
-                                Circle()
-                                    .fill(selectedRadius == radius ? AnyShapeStyle(OPTheme.mintGradient) : AnyShapeStyle(OPTheme.surfaceSunken))
-                                    .frame(width: 70, height: 70)
-                                    .overlay {
-                                        Text("\(radius)")
-                                            .font(.system(size: 24, weight: .bold))
-                                            .foregroundStyle(selectedRadius == radius ? .white : OPTheme.text)
-                                    }
-                                    .shadow(color: selectedRadius == radius ? OPTheme.mint.opacity(0.3) : .clear, radius: 6, y: 3)
+                ZStack {
+                    Circle()
+                        .fill(OPTheme.mintGradient)
+                        .frame(width: 100, height: 100)
+                        .shadow(color: OPTheme.mint.opacity(0.3), radius: 12, y: 4)
+                    VStack(spacing: 2) {
+                        Text("\(Int(sliderValue))")
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundStyle(.white)
+                        Text("км")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                }
 
-                                Text("\(radius) км")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(selectedRadius == radius ? OPTheme.mint : OPTheme.textSecondary)
-                            }
+                VStack(spacing: 8) {
+                    Slider(value: $sliderValue, in: 1...50, step: 1)
+                        .tint(OPTheme.mint)
+                        .padding(.horizontal, 8)
+
+                    HStack {
+                        Text("1 км")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(OPTheme.textTertiary)
+                        Spacer()
+                        Text("50 км")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(OPTheme.textTertiary)
+                    }
+                }
+                .padding(.horizontal, OPTheme.screenPadding)
+
+                HStack(spacing: 10) {
+                    ForEach([1, 5, 10, 25], id: \.self) { preset in
+                        Button {
+                            withAnimation(OPTheme.quickSpring) { sliderValue = Double(preset) }
+                        } label: {
+                            Text("\(preset) км")
+                                .font(.system(size: 13, weight: Int(sliderValue) == preset ? .bold : .medium))
+                                .foregroundStyle(Int(sliderValue) == preset ? .white : OPTheme.text)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(
+                                    Int(sliderValue) == preset ? AnyShapeStyle(OPTheme.mintGradient) : AnyShapeStyle(OPTheme.surfaceSunken),
+                                    in: Capsule()
+                                )
                         }
                     }
                 }
@@ -477,12 +617,16 @@ struct FilterRadiusSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Готово") { dismiss() }
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(OPTheme.primary)
+                    Button("Готово") {
+                        selectedRadius = Int(sliderValue)
+                        dismiss()
+                    }
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(OPTheme.primary)
                 }
             }
             .presentationDetents([.medium])
+            .onAppear { sliderValue = Double(selectedRadius) }
         }
     }
 }

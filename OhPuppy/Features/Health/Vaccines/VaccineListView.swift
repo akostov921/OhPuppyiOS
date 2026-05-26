@@ -94,9 +94,20 @@ struct VaccineListView: View {
                 }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(vaccine.type.label)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(OPTheme.text)
+                HStack(spacing: 6) {
+                    Text(vaccine.type.label)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(OPTheme.text)
+                    if vaccine.isVerified {
+                        HStack(spacing: 3) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 11))
+                            Text("Верифицирана")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundStyle(OPTheme.success)
+                    }
+                }
                 if isUpcoming, let due = vaccine.nextDueDate {
                     let days = due.daysFromNow
                     Text(days < 0 ? "Просрочена с \(abs(days)) дни" :
@@ -105,9 +116,16 @@ struct VaccineListView: View {
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(isOverdue ? OPTheme.danger : OPTheme.textSecondary)
                 } else {
-                    Text(vaccine.dateAdministered.shortBG)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(OPTheme.textSecondary)
+                    HStack(spacing: 4) {
+                        Text(vaccine.dateAdministered.shortBG)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(OPTheme.textSecondary)
+                        if let vetName = vaccine.verifiedByVet {
+                            Text("· \(vetName)")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(OPTheme.mint)
+                        }
+                    }
                 }
             }
 
@@ -135,6 +153,8 @@ struct AddVaccineView: View {
     @State private var date = Date()
     @State private var vet = ""
     @State private var clinic = ""
+    @State private var verificationCode = ""
+    @State private var showVetInvite = false
 
     var body: some View {
         NavigationStack {
@@ -197,11 +217,53 @@ struct AddVaccineView: View {
 
                     formField("Ветеринар", text: $vet, placeholder: "Д-р Илиян Иванов")
                     formField("Клиника", text: $clinic, placeholder: "Ветеринарна клиника Лапа")
+
+                    // Verification section
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(OPTheme.success)
+                            Text("ВЕРИФИКАЦИЯ")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(OPTheme.textSecondary)
+                                .tracking(0.5)
+                        }
+
+                        TextField("Код от ветеринаря (по избор)", text: $verificationCode)
+                            .font(.system(size: 16, weight: .medium))
+                            .padding(14)
+                            .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(verificationCode.isEmpty ? .clear : OPTheme.success.opacity(0.5), lineWidth: 1)
+                            )
+
+                        Text("Попитайте ветеринаря за код за верификация. Верифицираните ваксини имат специален знак.")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(OPTheme.textTertiary)
+
+                        Button { showVetInvite = true } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "link")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("Покани ветеринар в OhPuppy")
+                                    .font(.system(size: 13, weight: .bold))
+                            }
+                            .foregroundStyle(OPTheme.mint)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(OPTheme.mintSoft, in: Capsule())
+                        }
+                    }
                 }
                 .padding(OPTheme.screenPadding)
                 .padding(.bottom, 40)
             }
             .background(OPTheme.bg)
+            .sheet(isPresented: $showVetInvite) {
+                ShareSheet(activityItems: ["Здравейте! Моля, регистрирайте се в OhPuppy като ветеринар, за да можете да верифицирате ваксините на пациентите си.\n\nРегистрация: https://ohpuppy.bg/vet-register\n\nБлагодаря!"])
+            }
             .navigationTitle("Нова ваксина")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -212,6 +274,7 @@ struct AddVaccineView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Запази") {
                         let nextDue = Calendar.current.date(byAdding: .month, value: type.defaultIntervalMonths, to: date)!
+                        let code = verificationCode.trimmingCharacters(in: .whitespaces)
                         store.addVaccine(Vaccine(
                             id: store.newId(),
                             dogId: dogId,
@@ -219,7 +282,9 @@ struct AddVaccineView: View {
                             dateAdministered: date,
                             nextDueDate: nextDue,
                             vet: vet.isEmpty ? nil : vet,
-                            clinic: clinic.isEmpty ? nil : clinic
+                            clinic: clinic.isEmpty ? nil : clinic,
+                            verificationCode: code.isEmpty ? nil : code,
+                            verifiedByVet: code.isEmpty ? nil : (vet.isEmpty ? "Ветеринар" : vet)
                         ))
                         dismiss()
                     }
