@@ -40,7 +40,7 @@ struct ChatView: View {
                 // Chat rows
                 VStack(spacing: 0) {
                     ForEach(Array(chatData.enumerated()), id: \.element.name) { index, chat in
-                        NavigationLink(value: chat) {
+                        NavigationLink(destination: ChatRoomView(chat: chat)) {
                             chatRow(chat)
                         }
                         .buttonStyle(.plain)
@@ -62,10 +62,8 @@ struct ChatView: View {
             }
         }
         .background(OPTheme.bg)
-        .navigationBarHidden(true)
-        .navigationDestination(for: ChatPreview.self) { chat in
-            ChatRoomView(chat: chat)
-        }
+        .navigationTitle("Съобщения")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private func chatRow(_ chat: ChatPreview) -> some View {
