@@ -60,6 +60,32 @@ struct Vaccine: Identifiable, Codable {
     var isVerified: Bool { verificationCode != nil }
 }
 
+enum HomeSection: String, CaseIterable, Codable {
+    case stories, upcomingEvents, todayStats, social, playdate, health
+
+    var label: String {
+        switch self {
+        case .stories: "Сторита"
+        case .upcomingEvents: "Предстоящи"
+        case .todayStats: "Днес"
+        case .social: "Социално"
+        case .playdate: "Playdate"
+        case .health: "Здраве"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .stories: "circle.circle.fill"
+        case .upcomingEvents: "calendar"
+        case .todayStats: "chart.bar.fill"
+        case .social: "photo.on.rectangle"
+        case .playdate: "heart.fill"
+        case .health: "cross.case.fill"
+        }
+    }
+}
+
 enum UserRole: String, CaseIterable, Codable {
     case owner, vet, brand, walker
     var label: String {

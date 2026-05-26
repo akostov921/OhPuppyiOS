@@ -158,6 +158,13 @@ final class AppStore {
     var myStories: [Story] = []
     var currentDogStatus: (dogId: String, statusId: String, setAt: Date)?
     var walkerApplication: WalkerApplication?
+    var homeSectionOrder: [HomeSection] {
+        didSet {
+            if let data = try? JSONEncoder().encode(homeSectionOrder) {
+                UserDefaults.standard.set(data, forKey: "homeSectionOrder")
+            }
+        }
+    }
 
     private var nextId = 100
 
@@ -177,6 +184,13 @@ final class AppStore {
         self.language = defaults.string(forKey: "language") ?? "bg"
         self.showOnMap = defaults.object(forKey: "showOnMap") == nil ? true : defaults.bool(forKey: "showOnMap")
         self.locationPrecision = LocationPrecision(rawValue: defaults.string(forKey: "locationPrecision") ?? "Точна") ?? .exact
+
+        if let sectionData = defaults.data(forKey: "homeSectionOrder"),
+           let sections = try? JSONDecoder().decode([HomeSection].self, from: sectionData) {
+            self.homeSectionOrder = sections
+        } else {
+            self.homeSectionOrder = HomeSection.allCases
+        }
 
         if let notifData = defaults.data(forKey: "notificationSettings"),
            let settings = try? JSONDecoder().decode(NotificationSettings.self, from: notifData) {

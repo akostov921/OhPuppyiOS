@@ -7,11 +7,13 @@ struct OnboardingView: View {
     @State private var currentStep = 0
     @State private var pawFloatOffset: CGFloat = 0
     @State private var pawRotation: Double = 0
+    @State private var selectedInterests: Set<HomeSection> = Set(HomeSection.allCases)
+
+    private let totalSteps = 4
 
     var body: some View {
         ZStack {
             OPTheme.bg.ignoresSafeArea()
-
             floatingPaws
 
             VStack(spacing: 0) {
@@ -21,6 +23,7 @@ struct OnboardingView: View {
                     switch currentStep {
                     case 0: welcomeStep
                     case 1: featuresStep
+                    case 2: interestsStep
                     default: permissionsStep
                     }
                 }
@@ -35,12 +38,12 @@ struct OnboardingView: View {
                     .padding(.bottom, 32)
 
                 Button {
-                    if currentStep < 2 {
+                    if currentStep < totalSteps - 1 {
                         withAnimation(OPTheme.springAnimation) {
                             currentStep += 1
                         }
                     } else {
-                        requestPermissions()
+                        finishOnboarding()
                     }
                 } label: {
                     Text(buttonTitle)
@@ -69,6 +72,7 @@ struct OnboardingView: View {
         switch currentStep {
         case 0: "Започни"
         case 1: "Продължи"
+        case 2: "Продължи"
         default: "Разреши и продължи"
         }
     }
@@ -98,7 +102,7 @@ struct OnboardingView: View {
 
     private var progressIndicator: some View {
         HStack(spacing: 8) {
-            ForEach(0..<3, id: \.self) { index in
+            ForEach(0..<totalSteps, id: \.self) { index in
                 Capsule()
                     .fill(index == currentStep ? OPTheme.primary : OPTheme.textTertiary.opacity(0.3))
                     .frame(width: index == currentStep ? 24 : 8, height: 8)
@@ -107,10 +111,14 @@ struct OnboardingView: View {
         }
     }
 
-    private func requestPermissions() {
+    private func finishOnboarding() {
         let locationManager = CLLocationManager()
         locationManager.requestWhenInUseAuthorization()
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
+
+        let orderedSections = HomeSection.allCases.filter { selectedInterests.contains($0) }
+        store.homeSectionOrder = orderedSections.isEmpty ? HomeSection.allCases : orderedSections
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             store.completeOnboarding()
         }
@@ -125,32 +133,41 @@ struct OnboardingView: View {
                     .fill(
                         RadialGradient(
                             colors: [OPTheme.mint.opacity(0.2), OPTheme.primaryLight.opacity(0.08), .clear],
-                            center: .center,
-                            startRadius: 20,
-                            endRadius: 100
+                            center: .center, startRadius: 20, endRadius: 100
                         )
                     )
                     .frame(width: 180, height: 180)
 
-                Image(systemName: "pawprint.fill")
-                    .font(.system(size: 64))
-                    .foregroundStyle(OPTheme.primaryGradient)
-                    .symbolEffect(.breathe)
-                    .offset(y: pawFloatOffset * 0.5)
+                ZStack {
+                    Image(systemName: "pawprint.fill")
+                        .font(.system(size: 64))
+                        .foregroundStyle(OPTheme.primaryGradient)
+                        .symbolEffect(.breathe)
+                        .offset(y: pawFloatOffset * 0.5)
+
+                    Image(systemName: "pawprint.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(OPTheme.mint.opacity(0.4))
+                        .offset(x: -40, y: -30)
+                        .rotationEffect(.degrees(-25))
+                        .offset(y: pawFloatOffset * 0.3)
+
+                    Image(systemName: "pawprint.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(OPTheme.accent.opacity(0.3))
+                        .offset(x: 45, y: -20)
+                        .rotationEffect(.degrees(30))
+                        .offset(y: pawFloatOffset * -0.4)
+                }
             }
 
             VStack(spacing: 12) {
-                Text("Здравей!")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
-                +
-                Text(" Аз съм ")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
-                +
-                Text("Бисквит.")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(OPTheme.mint)
+                (Text("Здравей! Аз съм ")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(OPTheme.text)
+                 + Text("Бисквит.")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(OPTheme.mint))
 
                 Text("Тук следим ваксини, тегло и\nнамираме нови приятели за разходка.")
                     .font(.system(size: 15, weight: .medium))
@@ -162,7 +179,7 @@ struct OnboardingView: View {
         .padding(.horizontal, OPTheme.screenPadding)
     }
 
-    // MARK: - Step 2: Features
+    // MARK: - Step 2: Features (Floating Bubbles)
 
     private var featuresStep: some View {
         VStack(spacing: 28) {
@@ -175,61 +192,120 @@ struct OnboardingView: View {
                     .foregroundStyle(OPTheme.mint)
             }
 
+            ZStack {
+                featureBubble(icon: "heart.text.clipboard", color: OPTheme.mint, size: 70, x: -60, y: -50, delay: 0)
+                featureBubble(icon: "person.2.fill", color: OPTheme.accent, size: 60, x: 55, y: -30, delay: 0.3)
+                featureBubble(icon: "map.fill", color: OPTheme.sky, size: 55, x: -40, y: 40, delay: 0.6)
+                featureBubble(icon: "storefront.fill", color: OPTheme.rose, size: 50, x: 50, y: 50, delay: 0.9)
+                featureBubble(icon: "pawprint.fill", color: OPTheme.primary, size: 65, x: 0, y: 0, delay: 0.15)
+            }
+            .frame(height: 180)
+
             VStack(spacing: 14) {
-                featureCard(
-                    icon: "heart.text.clipboard",
-                    gradient: OPTheme.mintGradient,
-                    title: "Здравен дневник",
-                    subtitle: "Ваксини, тегло, грижа — всичко на едно място"
-                )
-                featureCard(
-                    icon: "person.2.fill",
-                    gradient: OPTheme.warmGradient,
-                    title: "Социална мрежа",
-                    subtitle: "Намери приятели за разходка наблизо"
-                )
-                featureCard(
-                    icon: "map.fill",
-                    gradient: LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    title: "Жива карта",
-                    subtitle: "Паркове, ветеринари и сигнали за изгубени"
-                )
+                featureLabel(icon: "heart.text.clipboard", text: "Здравен дневник", sub: "Ваксини, тегло, грижа", color: OPTheme.mint)
+                featureLabel(icon: "person.2.fill", text: "Социална мрежа", sub: "Приятели за разходка", color: OPTheme.accent)
+                featureLabel(icon: "storefront.fill", text: "Магазин", sub: "Продукти и услуги", color: OPTheme.rose)
             }
         }
         .padding(.horizontal, OPTheme.screenPadding)
     }
 
-    private func featureCard(icon: String, gradient: LinearGradient, title: String, subtitle: String) -> some View {
-        HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(gradient)
-                .frame(width: 46, height: 46)
-                .overlay {
-                    Image(systemName: icon)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
+    private func featureBubble(icon: String, color: Color, size: CGFloat, x: CGFloat, y: CGFloat, delay: Double) -> some View {
+        Circle()
+            .fill(color.opacity(0.15))
+            .frame(width: size, height: size)
+            .overlay {
+                Image(systemName: icon)
+                    .font(.system(size: size * 0.35, weight: .semibold))
+                    .foregroundStyle(color)
+            }
+            .offset(x: x, y: y + pawFloatOffset * CGFloat(delay + 0.3))
+            .shadow(color: color.opacity(0.15), radius: 8, y: 3)
+    }
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.system(size: 15, weight: .bold))
+    private func featureLabel(icon: String, text: String, sub: String, color: Color) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(color)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(text)
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(OPTheme.text)
-                Text(subtitle)
-                    .font(.system(size: 13, weight: .medium))
+                Text(sub)
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(OPTheme.textSecondary)
             }
             Spacer()
         }
-        .padding(14)
-        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(OPTheme.border, lineWidth: 1)
-        )
-        .shadow(color: OPTheme.primary.opacity(0.04), radius: 8, y: 3)
     }
 
-    // MARK: - Step 3: Permissions
+    // MARK: - Step 3: Interests
+
+    private var interestsStep: some View {
+        VStack(spacing: 24) {
+            VStack(spacing: 6) {
+                Text("Какво те")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(OPTheme.text)
+                Text("интересува?")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(OPTheme.mint)
+            }
+
+            Text("Избери какво искаш да виждаш на началния си екран.")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(OPTheme.textSecondary)
+                .multilineTextAlignment(.center)
+
+            VStack(spacing: 10) {
+                ForEach(HomeSection.allCases, id: \.self) { section in
+                    Button {
+                        withAnimation(OPTheme.quickSpring) {
+                            if selectedInterests.contains(section) {
+                                selectedInterests.remove(section)
+                            } else {
+                                selectedInterests.insert(section)
+                            }
+                        }
+                    } label: {
+                        let isSelected = selectedInterests.contains(section)
+                        HStack(spacing: 12) {
+                            Image(systemName: section.icon)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(isSelected ? .white : OPTheme.mint)
+                                .frame(width: 36, height: 36)
+                                .background(isSelected ? AnyShapeStyle(OPTheme.mintGradient) : AnyShapeStyle(OPTheme.mintSoft), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                            Text(section.label)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(OPTheme.text)
+
+                            Spacer()
+
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 20))
+                                .foregroundStyle(isSelected ? OPTheme.mint : OPTheme.textTertiary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(
+                            isSelected ? OPTheme.mintSoft.opacity(0.3) : Color.clear,
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(isSelected ? OPTheme.mint.opacity(0.3) : OPTheme.border, lineWidth: 1)
+                        )
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, OPTheme.screenPadding)
+    }
+
+    // MARK: - Step 4: Permissions
 
     private var permissionsStep: some View {
         VStack(spacing: 28) {
@@ -243,24 +319,9 @@ struct OnboardingView: View {
             }
 
             VStack(spacing: 14) {
-                permissionCard(
-                    icon: "location.fill",
-                    color: OPTheme.sky,
-                    title: "Локация",
-                    explanation: "За близки кучета и паркове"
-                )
-                permissionCard(
-                    icon: "camera.fill",
-                    color: OPTheme.accent,
-                    title: "Камера и снимки",
-                    explanation: "За снимки на кучето ти"
-                )
-                permissionCard(
-                    icon: "bell.fill",
-                    color: OPTheme.mint,
-                    title: "Известия",
-                    explanation: "Напомняне за ваксини"
-                )
+                permissionCard(icon: "location.fill", color: OPTheme.sky, title: "Локация", explanation: "За близки кучета и паркове")
+                permissionCard(icon: "camera.fill", color: OPTheme.accent, title: "Камера и снимки", explanation: "За снимки на кучето ти")
+                permissionCard(icon: "bell.fill", color: OPTheme.mint, title: "Известия", explanation: "Напомняне за ваксини")
             }
 
             Text("Можеш да промениш тези настройки по всяко време.")
@@ -281,7 +342,6 @@ struct OnboardingView: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(color)
                 }
-
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.system(size: 15, weight: .bold))

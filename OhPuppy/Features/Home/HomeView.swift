@@ -156,6 +156,9 @@ struct HomeView: View {
     // MARK: - Story Strip Animation State
     @State private var storyRingRotation: Double = 0
 
+    // MARK: - Home Customization
+    @State private var showHomeCustomize = false
+
     // MARK: - Story Viewer State
     @State private var showStoryViewer = false
     @State private var storyViewerStories: [Story] = []
@@ -256,25 +259,24 @@ struct HomeView: View {
                 header
                     .padding(.bottom, 14)
 
-                storyStrip
-                    .padding(.bottom, 20)
-
-                if let dog = store.dogs.first {
-                    upcomingEventsSlider(dog: dog)
-                        .padding(.bottom, 20)
+                ForEach(store.homeSectionOrder, id: \.self) { section in
+                    switch section {
+                    case .stories:
+                        storyStrip.padding(.bottom, 20)
+                    case .upcomingEvents:
+                        if let dog = store.dogs.first {
+                            upcomingEventsSlider(dog: dog).padding(.bottom, 20)
+                        }
+                    case .todayStats:
+                        todaySnapshot.padding(.bottom, 20)
+                    case .social:
+                        socialSection.padding(.bottom, 24)
+                    case .playdate:
+                        playdateSection.padding(.bottom, 24)
+                    case .health:
+                        healthSummary.padding(.bottom, 40)
+                    }
                 }
-
-                todaySnapshot
-                    .padding(.bottom, 20)
-
-                socialSection
-                    .padding(.bottom, 24)
-
-                playdateSection
-                    .padding(.bottom, 24)
-
-                healthSummary
-                    .padding(.bottom, 40)
             }
             .padding(.top, 6)
         }
@@ -297,6 +299,9 @@ struct HomeView: View {
         .sheet(isPresented: $showStatusPicker) {
             DogStatusView()
                 .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showHomeCustomize) {
+            HomeSectionOrderSheet()
         }
         .fullScreenCover(isPresented: $showStoryViewer) {
             StoryViewer(stories: storyViewerStories, startIndex: storyViewerStartIndex)
@@ -323,6 +328,14 @@ struct HomeView: View {
                 Spacer()
 
                 HStack(spacing: 10) {
+                    Button { showHomeCustomize = true } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(OPTheme.text)
+                            .frame(width: 40, height: 40)
+                            .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+
                     NavigationLink(destination: ChatView()) {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "bubble.left.and.bubble.right.fill")
@@ -1097,6 +1110,55 @@ struct HomeView: View {
         ]
     }
 
+}
+
+// MARK: - Home Section Order Sheet
+
+struct HomeSectionOrderSheet: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        @Bindable var store = store
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(store.homeSectionOrder, id: \.self) { section in
+                        HStack(spacing: 12) {
+                            Image(systemName: section.icon)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(OPTheme.mint)
+                                .frame(width: 28)
+                            Text(section.label)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(OPTheme.text)
+                            Spacer()
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: 14))
+                                .foregroundStyle(OPTheme.textTertiary)
+                        }
+                    }
+                    .onMove { from, to in
+                        store.homeSectionOrder.move(fromOffsets: from, toOffset: to)
+                    }
+                } header: {
+                    Text("Подреди секциите на началния екран")
+                } footer: {
+                    Text("Дръпни за да пренаредиш. Секциите ще се показват в избрания от теб ред.")
+                }
+            }
+            .environment(\.editMode, .constant(.active))
+            .navigationTitle("Начален екран")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Готово") { dismiss() }
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(OPTheme.primary)
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Animated Dog Avatar (Story Strip)
