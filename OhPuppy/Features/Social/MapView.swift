@@ -59,6 +59,7 @@ struct MapView: View {
     @State private var selectedVet: MapVetPin?
     @State private var showVetBooking = false
     @State private var showVetReview = false
+    @State private var bookingVet: MapVetPin?
 
     private let filters = ["Всички", "Кучета", "Разходчици", "Ветеринари", "Места", "Събития", "Изгубени"]
 
@@ -218,6 +219,11 @@ struct MapView: View {
         .navigationDestination(isPresented: $showPublicProfile) {
             if let nearby = selectedNearbyDog {
                 PublicDogProfileView(dog: nearby)
+            }
+        }
+        .sheet(isPresented: $showVetBooking) {
+            if let vet = bookingVet {
+                MapVetBookingSheet(vet: vet)
             }
         }
         .sheet(isPresented: $showVetReview) {
@@ -798,7 +804,7 @@ struct MapView: View {
                 }
             }
 
-            vetAvailabilityRow
+            vetAvailabilitySection(vet)
 
             HStack(spacing: 10) {
                 Button {
@@ -818,7 +824,8 @@ struct MapView: View {
                 }
 
                 Button {
-                    // Book appointment action
+                    bookingVet = vet
+                    showVetBooking = true
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "calendar.badge.plus").font(.system(size: 13, weight: .semibold))
@@ -851,37 +858,381 @@ struct MapView: View {
         .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
     }
 
-    private var vetAvailabilityRow: some View {
-        let days = ["Пон", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"]
+    private func vetAvailabilitySection(_ vet: MapVetPin) -> some View {
+        let dayLabels = ["Пон", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"]
         let today = (Calendar.current.component(.weekday, from: Date()) + 5) % 7
         let mockSlots = [3, 2, 4, 1, 3, 2, 0]
+        let cal = Calendar.current
         return VStack(alignment: .leading, spacing: 6) {
-            Text("Свободни часове")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(OPTheme.textSecondary)
+            HStack {
+                Text("Свободни часове")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(OPTheme.textSecondary)
+                Spacer()
+                Text("tap за запазване →")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(OPTheme.mint.opacity(0.6))
+            }
             HStack(spacing: 4) {
                 ForEach(0..<7, id: \.self) { i in
+                    let dayOffset = (i - today + 7) % 7
                     let isToday = i == today
                     let slots = mockSlots[i]
-                    VStack(spacing: 3) {
-                        Text(days[i])
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(isToday ? OPTheme.mint : OPTheme.textTertiary)
-                        Text(slots > 0 ? "\(slots)" : "—")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(slots > 0 ? (isToday ? .white : OPTheme.mint) : OPTheme.textTertiary)
-                            .frame(width: 28, height: 28)
-                            .background(
-                                isToday && slots > 0 ? AnyShapeStyle(OPTheme.mintGradient) :
-                                slots > 0 ? AnyShapeStyle(OPTheme.mint.opacity(0.12)) :
-                                AnyShapeStyle(OPTheme.surfaceSunken),
-                                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            )
+                    let targetDate = cal.date(byAdding: .day, value: dayOffset == 0 && !isToday ? 7 : dayOffset, to: Date()) ?? Date()
+                    Button {
+                        if slots > 0 {
+                            bookingVet = vet
+                            showVetBooking = true
+                        }
+                    } label: {
+                        VStack(spacing: 3) {
+                            Text(dayLabels[i])
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(isToday ? OPTheme.mint : OPTheme.textTertiary)
+                            Text(slots > 0 ? "\(slots)" : "—")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(slots > 0 ? (isToday ? .white : OPTheme.mint) : OPTheme.textTertiary)
+                                .frame(width: 28, height: 28)
+                                .background(
+                                    isToday && slots > 0 ? AnyShapeStyle(OPTheme.mintGradient) :
+                                    slots > 0 ? AnyShapeStyle(OPTheme.mint.opacity(0.12)) :
+                                    AnyShapeStyle(OPTheme.surfaceSunken),
+                                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                )
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
+                    .disabled(slots == 0)
                 }
             }
         }
+    }
+}
+
+// MARK: - Vet Booking Sheet
+
+struct MapVetBookingSheet: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    let vet: MapVetPin
+
+    @State private var step = 0
+    @State private var selectedServiceIndex = 0
+    @State private var selectedDayOffset = 0
+    @State private var selectedTimeSlot: String?
+    @State private var dogName = ""
+    @State private var notes = ""
+    @State private var showConfirmation = false
+
+    private let timeSlots = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"]
+
+    private var selectedDate: Date {
+        Calendar.current.date(byAdding: .day, value: selectedDayOffset, to: Calendar.current.startOfDay(for: Date())) ?? Date()
+    }
+
+    private var availableSlots: [String] {
+        let taken = Set([2, 5, 8].map { timeSlots[$0 % timeSlots.count] })
+        return timeSlots.filter { !taken.contains($0) }
+    }
+
+    private var selectedService: (name: String, price: Int, duration: String) {
+        vet.services[selectedServiceIndex]
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                progressBar
+                    .padding(.horizontal, OPTheme.screenPadding)
+                    .padding(.top, 12)
+
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        switch step {
+                        case 0: serviceStep
+                        case 1: dayStep
+                        case 2: timeStep
+                        default: confirmStep
+                        }
+                    }
+                    .padding(.horizontal, OPTheme.screenPadding)
+                    .padding(.top, 20)
+                    .padding(.bottom, 100)
+                }
+
+                bottomButton
+                    .padding(.horizontal, OPTheme.screenPadding)
+                    .padding(.bottom, 20)
+            }
+            .background(OPTheme.bg)
+            .navigationTitle("Запази час")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Затвори") { dismiss() }
+                }
+            }
+            .alert("Часът е запазен!", isPresented: $showConfirmation) {
+                Button("Готово") { dismiss() }
+            } message: {
+                Text("Часът при \(vet.name) е запазен за \(formattedDate). Ще получиш напомняне.")
+            }
+        }
+    }
+
+    private var formattedDate: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "bg_BG")
+        f.dateFormat = "d MMM, HH:mm"
+        guard let slot = selectedTimeSlot else { return "" }
+        let parts = slot.split(separator: ":")
+        var date = selectedDate
+        date = Calendar.current.date(bySettingHour: Int(parts[0]) ?? 9, minute: Int(parts[1]) ?? 0, second: 0, of: date) ?? date
+        return f.string(from: date)
+    }
+
+    // MARK: - Progress
+
+    private var progressBar: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<4, id: \.self) { i in
+                Capsule()
+                    .fill(i <= step ? OPTheme.mint : OPTheme.surfaceSunken)
+                    .frame(height: 4)
+                    .animation(OPTheme.quickSpring, value: step)
+            }
+        }
+    }
+
+    // MARK: - Step 1: Service
+
+    private var serviceStep: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            stepHeader(icon: "stethoscope", title: "Избери услуга")
+
+            ForEach(Array(vet.services.enumerated()), id: \.offset) { idx, service in
+                let isSelected = selectedServiceIndex == idx
+                Button {
+                    withAnimation(OPTheme.quickSpring) { selectedServiceIndex = idx }
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 20))
+                            .foregroundStyle(isSelected ? OPTheme.mint : OPTheme.textTertiary)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(service.name)
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(OPTheme.text)
+                            Text(service.duration)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(OPTheme.textSecondary)
+                        }
+                        Spacer()
+                        Text("\(service.price) лв")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(OPTheme.mint)
+                    }
+                    .padding(14)
+                    .background(
+                        isSelected ? OPTheme.mintSoft.opacity(0.3) : OPTheme.surface,
+                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(isSelected ? OPTheme.mint.opacity(0.4) : OPTheme.border, lineWidth: 1)
+                    )
+                }
+            }
+        }
+    }
+
+    // MARK: - Step 2: Day
+
+    private var dayStep: some View {
+        let cal = Calendar.current
+        let f: DateFormatter = {
+            let fmt = DateFormatter()
+            fmt.locale = Locale(identifier: "bg_BG")
+            return fmt
+        }()
+        return VStack(alignment: .leading, spacing: 14) {
+            stepHeader(icon: "calendar", title: "Избери ден")
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(0..<7, id: \.self) { offset in
+                    let date = cal.date(byAdding: .day, value: offset, to: cal.startOfDay(for: Date())) ?? Date()
+                    let isSelected = selectedDayOffset == offset
+                    let isToday = offset == 0
+
+                    Button {
+                        withAnimation(OPTheme.quickSpring) { selectedDayOffset = offset }
+                    } label: {
+                        VStack(spacing: 4) {
+                            Text(isToday ? "Днес" : f.weekdaySymbols[cal.component(.weekday, from: date) - 1].capitalized)
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(isSelected ? .white : OPTheme.text)
+                            Text("\(cal.component(.day, from: date))")
+                                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                                .foregroundStyle(isSelected ? .white : OPTheme.mint)
+                            Text(f.shortMonthSymbols[cal.component(.month, from: date) - 1].capitalized)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(isSelected ? .white.opacity(0.8) : OPTheme.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            isSelected ? AnyShapeStyle(OPTheme.mintGradient) : AnyShapeStyle(OPTheme.surface),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(isSelected ? OPTheme.mint.opacity(0.4) : OPTheme.border, lineWidth: 1)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Step 3: Time
+
+    private var timeStep: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            stepHeader(icon: "clock.fill", title: "Избери час")
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(availableSlots, id: \.self) { slot in
+                    let isSelected = selectedTimeSlot == slot
+                    Button {
+                        withAnimation(OPTheme.quickSpring) { selectedTimeSlot = slot }
+                    } label: {
+                        Text(slot)
+                            .font(.system(size: 16, weight: isSelected ? .bold : .medium))
+                            .foregroundStyle(isSelected ? .white : OPTheme.text)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(
+                                isSelected ? AnyShapeStyle(OPTheme.mintGradient) : AnyShapeStyle(OPTheme.surface),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(isSelected ? OPTheme.mint.opacity(0.4) : OPTheme.border, lineWidth: 1)
+                            )
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Step 4: Confirm
+
+    private var confirmStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            stepHeader(icon: "checkmark.seal.fill", title: "Потвърди")
+
+            VStack(spacing: 12) {
+                confirmRow(icon: "stethoscope", label: "Клиника", value: vet.clinic)
+                confirmRow(icon: "person.fill", label: "Ветеринар", value: vet.name)
+                confirmRow(icon: "cross.vial.fill", label: "Услуга", value: selectedService.name)
+                confirmRow(icon: "calendar", label: "Дата", value: formattedDate)
+                confirmRow(icon: "clock.fill", label: "Продължителност", value: selectedService.duration)
+
+                Divider()
+
+                HStack {
+                    Text("Цена")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(OPTheme.textSecondary)
+                    Spacer()
+                    Text("\(selectedService.price) лв")
+                        .font(.system(size: 24, weight: .heavy, design: .rounded))
+                        .foregroundStyle(OPTheme.mint)
+                }
+            }
+            .padding(16)
+            .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(OPTheme.mint.opacity(0.3), lineWidth: 1))
+
+            TextField("Име на кучето", text: $dogName)
+                .font(.system(size: 15))
+                .padding(14)
+                .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            TextField("Бележки (по избор)", text: $notes, axis: .vertical)
+                .font(.system(size: 15))
+                .lineLimit(2...4)
+                .padding(14)
+                .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+
+    private func confirmRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(OPTheme.mint)
+                .frame(width: 22)
+            Text(label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(OPTheme.textSecondary)
+            Spacer()
+            Text(value)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(OPTheme.text)
+        }
+    }
+
+    private func stepHeader(icon: String, title: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(OPTheme.mint)
+            Text(title)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(OPTheme.text)
+        }
+    }
+
+    // MARK: - Bottom Button
+
+    private var bottomButton: some View {
+        let canProceed: Bool = {
+            switch step {
+            case 2: return selectedTimeSlot != nil
+            case 3: return !dogName.trimmingCharacters(in: .whitespaces).isEmpty
+            default: return true
+            }
+        }()
+
+        return Button {
+            if step < 3 {
+                withAnimation(OPTheme.springAnimation) { step += 1 }
+            } else {
+                showConfirmation = true
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text(step < 3 ? "Продължи" : "Запази час")
+                    .font(.system(size: 17, weight: .bold))
+                if step < 3 {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 14, weight: .bold))
+                } else {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                canProceed ? AnyShapeStyle(OPTheme.mintGradient) : AnyShapeStyle(OPTheme.textTertiary.opacity(0.4)),
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+            .shadow(color: canProceed ? OPTheme.mint.opacity(0.3) : .clear, radius: 8, y: 4)
+        }
+        .disabled(!canProceed)
     }
 }
 
