@@ -93,6 +93,7 @@ private struct SavedState: Codable {
     var adoptionRequests: [AdoptionRequest]?
     var shelterDonations: [Donation]?
     var appNotifications: [AppNotification]?
+    var businessReviews: [BusinessReview]?
     var nextId: Int
 }
 
@@ -183,6 +184,14 @@ final class AppStore {
         didSet { UserDefaults.standard.set(acceptsWalkOffers, forKey: "acceptsWalkOffers") }
     }
 
+    var profilePhotoPath: String {
+        didSet { UserDefaults.standard.set(profilePhotoPath, forKey: "profilePhotoPath") }
+    }
+
+    var profilePhotoURL: URL? {
+        profilePhotoPath.isEmpty ? nil : URL(fileURLWithPath: profilePhotoPath)
+    }
+
     var userEvents: [DogEvent] = []
     var stories: [Story]
     var myStories: [Story] = []
@@ -212,6 +221,7 @@ final class AppStore {
     var adoptionRequests: [AdoptionRequest] = []
     var shelterDonations: [Donation] = []
     var appNotifications: [AppNotification] = []
+    var businessReviews: [BusinessReview] = []
 
     var vetAcceptsOnlineBooking: Bool {
         didSet { UserDefaults.standard.set(vetAcceptsOnlineBooking, forKey: "vetAcceptsOnlineBooking") }
@@ -262,6 +272,7 @@ final class AppStore {
         self.acceptsWalkOffers = defaults.bool(forKey: "acceptsWalkOffers")
         self.vetAcceptsOnlineBooking = defaults.object(forKey: "vetAcceptsOnlineBooking") == nil ? true : defaults.bool(forKey: "vetAcceptsOnlineBooking")
         self.walkerAcceptsOnlineRequests = defaults.object(forKey: "walkerAcceptsOnlineRequests") == nil ? true : defaults.bool(forKey: "walkerAcceptsOnlineRequests")
+        self.profilePhotoPath = defaults.string(forKey: "profilePhotoPath") ?? ""
         self.locationPrecision = LocationPrecision(rawValue: defaults.string(forKey: "locationPrecision") ?? "Точна") ?? .exact
 
         if let sectionData = defaults.data(forKey: "homeSectionOrder"),
@@ -312,6 +323,7 @@ final class AppStore {
             self.adoptionRequests = state.adoptionRequests ?? []
             self.shelterDonations = state.shelterDonations ?? []
             self.appNotifications = state.appNotifications ?? []
+            self.businessReviews = state.businessReviews ?? []
         } else {
             let cal = Calendar.current
             self.dogs = [
@@ -376,6 +388,15 @@ final class AppStore {
                 Story(id: "s4", dogName: "Чарли", ownerName: "Иван", photoURL: URL(string: "https://images.unsplash.com/photo-1605568427561-40dd23c2acea?auto=format&fit=crop&w=800&h=1200&q=85"), caption: "Снежен ден ❄️", timestamp: Date().addingTimeInterval(-14400), isSeen: false, dogId: "nd4"),
             ]
 
+            self.businessReviews = [
+                BusinessReview(id: "br1", businessType: .vet, businessId: "vet1", reviewerName: "Мария К.", rating: 5, comment: "Страхотен ветеринар! Рекс се чувства прекрасно.", date: Date().addingTimeInterval(-86400*2)),
+                BusinessReview(id: "br2", businessType: .vet, businessId: "vet1", reviewerName: "Георги П.", rating: 4, comment: "Професионално обслужване, малко скъпо.", date: Date().addingTimeInterval(-86400*5)),
+                BusinessReview(id: "br3", businessType: .brand, businessId: "brand1", reviewerName: "Ана Д.", rating: 5, comment: "Кучето обожава храната! Ще поръчам пак.", date: Date().addingTimeInterval(-86400)),
+                BusinessReview(id: "br4", businessType: .brand, businessId: "brand1", reviewerName: "Иван С.", rating: 4, comment: "Бърза доставка, добро качество.", date: Date().addingTimeInterval(-86400*3)),
+                BusinessReview(id: "br5", businessType: .shelter, businessId: "shelter1", reviewerName: "Петър Г.", rating: 5, comment: "Прекрасен приют, грижат се за кучетата.", date: Date().addingTimeInterval(-86400*4)),
+                BusinessReview(id: "br6", businessType: .walker, businessId: "walker1", reviewerName: "Десислава М.", rating: 5, comment: "Чарли го обожава! Винаги щастлив след разходка.", date: Date().addingTimeInterval(-86400*2)),
+            ]
+
             save()
         }
     }
@@ -418,6 +439,7 @@ final class AppStore {
             adoptionRequests: adoptionRequests,
             shelterDonations: shelterDonations,
             appNotifications: appNotifications,
+            businessReviews: businessReviews,
             nextId: nextId
         )
         if let data = try? JSONEncoder().encode(state) {
@@ -693,6 +715,11 @@ final class AppStore {
     }
 
     // MARK: - Auth
+
+    func saveProfilePhoto(_ data: Data) {
+        let url = PhotoStorage.save(imageData: data, for: "profile")
+        profilePhotoPath = url.path
+    }
 
     func signIn() {
         isAuthenticated = true
@@ -1040,6 +1067,24 @@ final class AppStore {
             ShelterAnimal(id: newId(), name: "Рокси", breed: "Микс", age: "2 години", sex: .female, description: "Намерена на улицата, вече ваксинирана.", photoURL: URL(string: "https://images.unsplash.com/photo-1561037404-61cd46aa615b?auto=format&fit=crop&w=400&h=400&q=85"), isAdopted: true, addedAt: Date().addingTimeInterval(-86400*20)),
             ShelterAnimal(id: newId(), name: "Тарзан", breed: "Питбул", age: "4 години", sex: .male, description: "Кротък гигант. Обожава хората.", photoURL: URL(string: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=400&h=400&q=85"), isAdopted: false, addedAt: Date().addingTimeInterval(-86400*3)),
         ]
+    }
+
+    // MARK: - Business Reviews
+
+    func addBusinessReview(_ review: BusinessReview) {
+        businessReviews.append(review)
+        save()
+    }
+
+    func reviewsFor(businessType: BusinessReview.BusinessType, businessId: String) -> [BusinessReview] {
+        businessReviews.filter { $0.businessType == businessType && $0.businessId == businessId }
+            .sorted { $0.date > $1.date }
+    }
+
+    func averageRating(businessType: BusinessReview.BusinessType, businessId: String) -> Double {
+        let reviews = reviewsFor(businessType: businessType, businessId: businessId)
+        guard !reviews.isEmpty else { return 0 }
+        return Double(reviews.reduce(0) { $0 + $1.rating }) / Double(reviews.count)
     }
 
     // MARK: - ID generation

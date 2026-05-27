@@ -619,3 +619,19 @@ struct AppNotification: Identifiable, Codable {
         case vaccine, vetVisit, walkComplete, walkOffer, adoption, order, social
     }
 }
+
+// MARK: - Business Review
+
+struct BusinessReview: Identifiable, Codable {
+    let id: String
+    var businessType: BusinessType
+    var businessId: String
+    var reviewerName: String
+    var rating: Int
+    var comment: String
+    var date: Date
+
+    enum BusinessType: String, Codable {
+        case vet, brand, walker, shelter
+    }
+}

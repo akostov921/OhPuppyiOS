@@ -58,6 +58,7 @@ struct MapView: View {
     @State private var selectedWalker: MapWalkerPin?
     @State private var selectedVet: MapVetPin?
     @State private var showVetBooking = false
+    @State private var showVetReview = false
 
     private let filters = ["Всички", "Кучета", "Разходчици", "Ветеринари", "Места", "Събития", "Изгубени"]
 
@@ -217,6 +218,11 @@ struct MapView: View {
         .navigationDestination(isPresented: $showPublicProfile) {
             if let nearby = selectedNearbyDog {
                 PublicDogProfileView(dog: nearby)
+            }
+        }
+        .sheet(isPresented: $showVetReview) {
+            if let vet = selectedVet {
+                ReviewSheet(businessType: .vet, businessId: vet.id, businessName: vet.name)
             }
         }
         .sheet(isPresented: $showInviteShare) {
@@ -823,6 +829,20 @@ struct MapView: View {
                     .padding(.vertical, 12)
                     .background(OPTheme.mintGradient, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
+            }
+
+            Button {
+                showVetReview = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "star.bubble.fill").font(.system(size: 13, weight: .semibold))
+                    Text("Остави ревю").font(.system(size: 14, weight: .bold))
+                }
+                .foregroundStyle(OPTheme.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(OPTheme.accentSoft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(OPTheme.accent.opacity(0.3), lineWidth: 1))
             }
         }
         .padding(14)
