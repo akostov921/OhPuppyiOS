@@ -868,15 +868,8 @@ struct BrandSettingsView: View {
             VStack(spacing: 12) {
                 ZStack {
                     Circle().fill(.white.opacity(0.2)).frame(width: 96, height: 96)
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .fill(.white)
-                        .frame(width: 80, height: 80)
+                    ProfilePhotoView(size: 80, cornerRadius: 26, fallbackIcon: "bag.fill", gradient: OPTheme.accentGradient)
                         .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
-                        .overlay {
-                            Image(systemName: "bag.fill")
-                                .font(.system(size: 34, weight: .semibold))
-                                .foregroundStyle(OPTheme.accentGradient)
-                        }
                 }
 
                 Text(store.ownerName)

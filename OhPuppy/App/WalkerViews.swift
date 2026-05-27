@@ -1030,17 +1030,12 @@ struct WalkerSettingsView: View {
             VStack(spacing: 14) {
                 Spacer().frame(height: 56)
 
-                // White rounded person icon
+                // Profile photo
                 ZStack {
                     Circle()
                         .fill(.white.opacity(0.15))
-                        .frame(width: 84, height: 84)
-                    Circle()
-                        .fill(.white.opacity(0.2))
-                        .frame(width: 72, height: 72)
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 30, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .frame(width: 96, height: 96)
+                    ProfilePhotoView(size: 80, cornerRadius: 40, fallbackIcon: "figure.walk", gradient: LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .topLeading, endPoint: .trailing))
                 }
 
                 // Name

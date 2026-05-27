@@ -986,15 +986,8 @@ struct ShelterSettingsView: View {
             VStack(spacing: 12) {
                 ZStack {
                     Circle().fill(.white.opacity(0.2)).frame(width: 96, height: 96)
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .fill(.white)
-                        .frame(width: 80, height: 80)
+                    ProfilePhotoView(size: 80, cornerRadius: 26, fallbackIcon: "building.2.fill", gradient: LinearGradient(colors: [OPTheme.rose, OPTheme.accent], startPoint: .topLeading, endPoint: .bottomTrailing))
                         .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
-                        .overlay {
-                            Image(systemName: "building.2.fill")
-                                .font(.system(size: 34, weight: .semibold))
-                                .foregroundStyle(shelterGradient)
-                        }
                 }
 
                 Text("Приют \(store.ownerName)")

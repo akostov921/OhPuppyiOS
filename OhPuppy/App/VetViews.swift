@@ -1010,15 +1010,8 @@ struct VetSettingsView: View {
             VStack(spacing: 12) {
                 ZStack {
                     Circle().fill(.white.opacity(0.2)).frame(width: 96, height: 96)
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .fill(.white)
-                        .frame(width: 80, height: 80)
+                    ProfilePhotoView(size: 80, cornerRadius: 26, fallbackIcon: "stethoscope", gradient: OPTheme.mintGradient)
                         .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
-                        .overlay {
-                            Image(systemName: "stethoscope")
-                                .font(.system(size: 34, weight: .semibold))
-                                .foregroundStyle(OPTheme.mintGradient)
-                        }
                 }
 
                 Text("Д-р \(store.ownerName)")
