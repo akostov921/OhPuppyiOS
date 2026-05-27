@@ -5,7 +5,9 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if !store.hasCompletedOnboarding {
+            if !store.hasSelectedInitialRole {
+                RolePickerView()
+            } else if !store.hasCompletedOnboarding {
                 OnboardingView()
             } else if !store.isAuthenticated {
                 SignInView()

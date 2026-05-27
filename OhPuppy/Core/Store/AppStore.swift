@@ -136,6 +136,9 @@ final class AppStore {
     var hasCompletedOnboarding: Bool {
         didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
     }
+    var hasSelectedInitialRole: Bool {
+        didSet { UserDefaults.standard.set(hasSelectedInitialRole, forKey: "hasSelectedInitialRole") }
+    }
 
     var ownerName: String {
         didSet { UserDefaults.standard.set(ownerName, forKey: "ownerName"); save() }
@@ -246,6 +249,7 @@ final class AppStore {
         let defaults = UserDefaults.standard
         self.isAuthenticated = defaults.bool(forKey: "isAuthenticated")
         self.hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
+        self.hasSelectedInitialRole = defaults.bool(forKey: "hasSelectedInitialRole")
         self.ownerName = defaults.string(forKey: "ownerName").flatMap { $0.isEmpty ? nil : $0 } ?? "Apostol"
         self.ownerEmail = defaults.string(forKey: "ownerEmail") ?? ""
         self.ownerBio = defaults.string(forKey: "ownerBio") ?? ""
