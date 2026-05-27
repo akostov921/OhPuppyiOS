@@ -40,17 +40,15 @@ struct VetHomeView: View {
     @State private var showAddService = false
     @State private var showAddAppointment = false
     @State private var showVerifyAlert = false
+    @State private var showCompleteSheet: VetAppointment?
+    @State private var heroFloat: CGFloat = 0
 
     private var uniquePatientCount: Int {
         Set(store.vetAppointments.map { $0.dogName }).count
     }
 
-    /// Computed vet rating based on completed appointments count.
-    /// No review system exists yet, so we derive a score from activity.
-    private var vetRating: String {
-        let completed = store.vetAppointments.filter { $0.status == .completed }.count
-        let rating = min(5.0, 4.0 + Double(completed) * 0.1)
-        return String(format: "%.1f", rating)
+    private var completedCount: Int {
+        store.vetAppointments.filter { $0.status == .completed }.count
     }
 
     private var todayAppointments: [VetAppointment] {
@@ -59,90 +57,215 @@ struct VetHomeView: View {
             .sorted { $0.date < $1.date }
     }
 
+    private var todayUpcomingCount: Int {
+        todayAppointments.filter { $0.status == .upcoming }.count
+    }
+
+    private var todayCompletedCount: Int {
+        todayAppointments.filter { $0.status == .completed }.count
+    }
+
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour < 12 { return "Добро утро" }
+        if hour < 18 { return "Добър ден" }
+        return "Добър вечер"
+    }
+
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 20) {
-                DashboardRoleSwitcher()
-
-                // Header card
-                headerCard
-
-                // Stats row
-                statsRow
-
-                // Today's appointments
-                todaySection
-
-                // Quick actions
-                quickActions
+            VStack(spacing: 0) {
+                heroSection
+                VStack(spacing: 18) {
+                    statsHighlight
+                    appointmentPipeline
+                    todaySection
+                    quickActions
+                }
+                .padding(.horizontal, OPTheme.screenPadding)
+                .padding(.top, 20)
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, OPTheme.screenPadding)
-            .padding(.bottom, 40)
         }
         .background(OPTheme.bg)
         .navigationBarHidden(true)
+        .ignoresSafeArea(edges: .top)
         .sheet(isPresented: $showAddService) { AddVetServiceSheet() }
         .sheet(isPresented: $showAddAppointment) { VetNewAppointmentSheet() }
+        .sheet(item: $showCompleteSheet) { appt in
+            VetCompleteAppointmentSheet(appointment: appt)
+        }
         .alert("Верификация на ваксини", isPresented: $showVerifyAlert) {
             Button("OK", role: .cancel) { }
         } message: {
             Text("Функцията ще бъде налична скоро.")
         }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) { heroFloat = -8 }
+        }
     }
 
-    // MARK: - Header Card
+    // MARK: - Hero Section
 
-    private var headerCard: some View {
-        HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(OPTheme.mintGradient)
-                .frame(width: 64, height: 64)
-                .overlay {
-                    Image(systemName: "stethoscope")
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Д-р \(store.ownerName)")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
-                HStack(spacing: 6) {
-                    Circle().fill(OPTheme.success).frame(width: 8, height: 8)
-                    Text("Активна клиника")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(OPTheme.success)
+    private var heroSection: some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+                colors: [Color(hex: "52B788"), Color(hex: "40916C"), Color(hex: "2D6A4F")],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+            .frame(height: 220)
+            .overlay {
+                ZStack {
+                    ForEach(0..<5, id: \.self) { i in
+                        Image(systemName: ["stethoscope", "cross.fill", "heart.fill", "pill.fill", "pawprint.fill"][i])
+                            .font(.system(size: CGFloat([18, 14, 12, 16, 10][i])))
+                            .foregroundStyle(.white.opacity(Double([0.08, 0.06, 0.09, 0.05, 0.07][i])))
+                            .offset(
+                                x: CGFloat([-80, 100, 60, -50, 120][i]),
+                                y: CGFloat([-35, 15, -55, 45, -25][i]) + heroFloat * CGFloat([1, -0.6, 0.8, -1, 0.5][i])
+                            )
+                    }
                 }
             }
-            Spacer()
+
+            VStack(alignment: .leading, spacing: 8) {
+                DashboardRoleSwitcher()
+                    .padding(.bottom, 4)
+
+                Text("\(greeting), Д-р \(store.ownerName)")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(.white)
+
+                HStack(spacing: 12) {
+                    HStack(spacing: 4) {
+                        Circle().fill(.white).frame(width: 7, height: 7)
+                        Text("Клиниката е активна")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundStyle(.white.opacity(0.9))
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(.white.opacity(0.2), in: Capsule())
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "calendar").font(.system(size: 11, weight: .bold))
+                        Text("\(todayUpcomingCount) днес")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundStyle(.white.opacity(0.9))
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(.white.opacity(0.2), in: Capsule())
+
+                    if todayCompletedCount > 0 {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark").font(.system(size: 11, weight: .bold))
+                            Text("\(todayCompletedCount) завършени")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .foregroundStyle(.white.opacity(0.9))
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .background(.white.opacity(0.2), in: Capsule())
+                    }
+                }
+            }
+            .padding(.horizontal, OPTheme.screenPadding)
+            .padding(.bottom, 24)
+        }
+    }
+
+    // MARK: - Stats Highlight
+
+    private var statsHighlight: some View {
+        HStack(spacing: 10) {
+            homeStatCard(
+                value: "\(store.vetServices.count)",
+                label: "Услуги",
+                icon: "list.bullet.clipboard.fill",
+                color: OPTheme.mint,
+                gradient: OPTheme.mintGradient
+            )
+            homeStatCard(
+                value: "\(uniquePatientCount)",
+                label: "Пациенти",
+                icon: "pawprint.fill",
+                color: OPTheme.sky,
+                gradient: LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .topLeading, endPoint: .bottomTrailing)
+            )
+        }
+    }
+
+    private func homeStatCard(value: String, label: String, icon: String, color: Color, gradient: LinearGradient) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background(gradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            Text(value)
+                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .foregroundStyle(OPTheme.text)
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(OPTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+    }
+
+    // MARK: - Appointment Pipeline
+
+    private var appointmentPipeline: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Статус на часовете")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(OPTheme.text)
+
+            HStack(spacing: 0) {
+                let stages: [(label: String, icon: String, color: Color, count: Int)] = [
+                    ("Предстоящи", "clock.fill", OPTheme.sky, store.vetAppointments.filter { $0.status == .upcoming }.count),
+                    ("Завършени", "checkmark.circle.fill", OPTheme.success, completedCount),
+                    ("Отменени", "xmark.circle.fill", OPTheme.danger, store.vetAppointments.filter { $0.status == .cancelled }.count),
+                ]
+                ForEach(Array(stages.enumerated()), id: \.offset) { idx, stage in
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(stage.count > 0 ? stage.color.opacity(0.15) : OPTheme.surfaceSunken)
+                                .frame(width: 44, height: 44)
+                            Image(systemName: stage.icon)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(stage.count > 0 ? stage.color : OPTheme.textTertiary)
+                        }
+                        .overlay(alignment: .topTrailing) {
+                            if stage.count > 0 {
+                                Text("\(stage.count)")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 18, height: 18)
+                                    .background(stage.color, in: Circle())
+                                    .offset(x: 4, y: -4)
+                            }
+                        }
+
+                        Text(stage.label)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(OPTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    if idx < stages.count - 1 {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(OPTheme.textTertiary.opacity(0.5))
+                            .padding(.bottom, 18)
+                    }
+                }
+            }
         }
         .padding(16)
         .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.mint.opacity(0.3), lineWidth: 1))
-    }
-
-    // MARK: - Stats Row
-
-    private var statsRow: some View {
-        HStack(spacing: 10) {
-            vetStatBox(value: "\(store.vetServices.count)", label: "Услуги", color: OPTheme.mint)
-            vetStatBox(value: "\(uniquePatientCount)", label: "Пациенти", color: OPTheme.sky)
-            vetStatBox(value: vetRating, label: "Рейтинг", color: OPTheme.accent)
-        }
-    }
-
-    private func vetStatBox(value: String, label: String, color: Color) -> some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(color)
-            Text(label)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(OPTheme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
     }
 
     // MARK: - Today Section
@@ -165,22 +288,36 @@ struct VetHomeView: View {
                 .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             } else {
                 ForEach(todayAppointments) { appt in
-                    HStack(spacing: 12) {
+                    HStack(spacing: 0) {
+                        // Time column
                         VStack(spacing: 2) {
                             Text(appt.date.formatted(.dateTime.hour(.defaultDigits(amPM: .abbreviated)).minute()))
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(OPTheme.mint)
                         }
-                        .frame(width: 52)
+                        .frame(width: 56)
 
+                        // Colored left bar
+                        RoundedRectangle(cornerRadius: 2, style: .continuous)
+                            .fill(appointmentBarColor(appt.status))
+                            .frame(width: 3)
+                            .padding(.vertical, 4)
+
+                        // Content
                         VStack(alignment: .leading, spacing: 3) {
                             Text(appt.serviceName)
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(OPTheme.text)
-                            Text("\(appt.dogName)")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(OPTheme.textSecondary)
+                            HStack(spacing: 4) {
+                                Image(systemName: "pawprint.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(OPTheme.textTertiary)
+                                Text(appt.dogName)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(OPTheme.textSecondary)
+                            }
                         }
+                        .padding(.leading, 10)
 
                         Spacer()
 
@@ -190,6 +327,19 @@ struct VetHomeView: View {
                                 .foregroundStyle(OPTheme.mint)
 
                             appointmentStatusBadge(appt.status)
+
+                            if appt.status == .upcoming {
+                                Button {
+                                    showCompleteSheet = appt
+                                } label: {
+                                    Text("Завърши")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(OPTheme.success, in: Capsule())
+                                }
+                            }
                         }
                     }
                     .padding(12)
@@ -206,54 +356,47 @@ struct VetHomeView: View {
         VStack(alignment: .leading, spacing: 10) {
             OPSectionHeader(title: "Бързи действия")
 
-            HStack(spacing: 12) {
-                Button {
+            HStack(spacing: 10) {
+                vetQuickAction(icon: "calendar.badge.plus", label: "Нов час", gradient: OPTheme.mintGradient) {
                     showAddAppointment = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "calendar.badge.plus")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("Нов час")
-                            .font(.system(size: 15, weight: .bold))
-                    }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(OPTheme.mintGradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-
-                Button {
+                vetQuickAction(icon: "plus.circle.fill", label: "Добави услуга", gradient: LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .leading, endPoint: .trailing)) {
                     showAddService = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("Добави услуга")
-                            .font(.system(size: 15, weight: .bold))
-                    }
-                    .foregroundStyle(OPTheme.mint)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OPTheme.mint.opacity(0.4), lineWidth: 1.5))
+                }
+                vetQuickAction(icon: "checkmark.seal.fill", label: "Ваксини", gradient: LinearGradient(colors: [OPTheme.accent, OPTheme.accentDark], startPoint: .leading, endPoint: .trailing)) {
+                    showVerifyAlert = true
                 }
             }
+        }
+    }
 
-            Button {
-                showVerifyAlert = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("Верифицирай ваксини")
-                        .font(.system(size: 15, weight: .bold))
-                }
-                .foregroundStyle(OPTheme.accent)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OPTheme.accent.opacity(0.4), lineWidth: 1.5))
+    private func vetQuickAction(icon: String, label: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
+                Text(label)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(OPTheme.text)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func appointmentBarColor(_ status: AppointmentStatus) -> Color {
+        switch status {
+        case .upcoming: OPTheme.sky
+        case .completed: OPTheme.success
+        case .cancelled: OPTheme.danger
         }
     }
 
@@ -777,194 +920,313 @@ struct VetServicesView: View {
 
 struct VetSettingsView: View {
     @Environment(AppStore.self) private var store
+    @State private var showLogoutAlert = false
+    @State private var showDarkMode = false
+    @State private var showAddService = false
+    @State private var showAddAppointment = false
+    @State private var heroFloat: CGFloat = 0
+
+    private var completedRevenue: Double {
+        store.vetAppointments.filter { $0.status == .completed }.reduce(0) { $0 + $1.price }
+    }
+
+    private var completedCount: Int {
+        store.vetAppointments.filter { $0.status == .completed }.count
+    }
+
+    private var uniquePatientCount: Int {
+        Set(store.vetAppointments.map { $0.dogName }).count
+    }
+
+    private var vetRating: String {
+        let rating = min(5.0, 4.0 + Double(completedCount) * 0.1)
+        return String(format: "%.1f", rating)
+    }
+
+    private let mockWeekAppts: [Double] = [3, 5, 2, 7, 4, 1, 6]
+    private let mockWeekLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"]
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 20) {
-                // Profile header
-                profileHeader
+            VStack(spacing: 0) {
+                heroHeader
+                statsGrid
+                    .padding(.top, -36)
+                    .padding(.horizontal, OPTheme.screenPadding)
 
-                // Clinic info
-                clinicInfoCard
-
-                // Working hours
-                workingHoursCard
-
-                // Role switcher
-                roleSwitchSection
-
-                // Preferences
-                preferencesSection
-
-                // Logout
-                logoutButton
+                VStack(spacing: 20) {
+                    settingsQuickActions
+                    weeklyChart
+                    clinicInfoSection
+                    roleSwitcherSection
+                    preferencesSection
+                    logoutButton
+                }
+                .padding(.horizontal, OPTheme.screenPadding)
+                .padding(.top, 20)
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, OPTheme.screenPadding)
-            .padding(.bottom, 40)
         }
         .background(OPTheme.bg)
-        .navigationTitle("Профил")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(true)
+        .ignoresSafeArea(edges: .top)
+        .alert("Излизане?", isPresented: $showLogoutAlert) {
+            Button("Отказ", role: .cancel) {}
+            Button("Излез", role: .destructive) { store.signOut() }
+        } message: {
+            Text("Сигурни ли сте, че искате да излезете?")
+        }
+        .sheet(isPresented: $showDarkMode) { DarkModeSheet() }
+        .sheet(isPresented: $showAddService) { AddVetServiceSheet() }
+        .sheet(isPresented: $showAddAppointment) { VetNewAppointmentSheet() }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) { heroFloat = -6 }
+        }
     }
 
-    // MARK: - Profile Header
+    // MARK: - Hero Header
 
-    private var profileHeader: some View {
-        VStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(OPTheme.mintGradient)
-                    .frame(width: 80, height: 80)
-                Image(systemName: "stethoscope")
-                    .font(.system(size: 32, weight: .semibold))
-                    .foregroundStyle(.white)
+    private var heroHeader: some View {
+        ZStack(alignment: .bottom) {
+            LinearGradient(
+                colors: [Color(hex: "52B788"), Color(hex: "40916C"), Color(hex: "2D6A4F")],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+            .frame(height: 280)
+            .overlay {
+                ZStack {
+                    ForEach(0..<4, id: \.self) { i in
+                        Image(systemName: ["cross.fill", "heart.fill", "pill.fill", "stethoscope"][i])
+                            .font(.system(size: CGFloat([14, 18, 12, 16][i])))
+                            .foregroundStyle(.white.opacity(Double([0.08, 0.06, 0.1, 0.05][i])))
+                            .offset(
+                                x: CGFloat([-60, 80, 40, -90][i]),
+                                y: CGFloat([-40, 20, -70, 50][i]) + heroFloat * CGFloat([1, -0.7, 0.5, -1][i])
+                            )
+                    }
+                }
             }
 
-            VStack(spacing: 4) {
+            VStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(.white.opacity(0.2)).frame(width: 96, height: 96)
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .fill(.white)
+                        .frame(width: 80, height: 80)
+                        .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
+                        .overlay {
+                            Image(systemName: "stethoscope")
+                                .font(.system(size: 34, weight: .semibold))
+                                .foregroundStyle(OPTheme.mintGradient)
+                        }
+                }
+
                 Text("Д-р \(store.ownerName)")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
-                Text("Ветеринарна клиника Лапа")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(OPTheme.textSecondary)
-            }
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.white)
 
-            HStack(spacing: 6) {
-                Circle().fill(OPTheme.success).frame(width: 8, height: 8)
-                Text("Активен профил")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(OPTheme.success)
+                Text("Клиника Лапа")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.8))
+
+                HStack(spacing: 6) {
+                    Circle().fill(.white).frame(width: 7, height: 7)
+                    Text("Активен профил").font(.system(size: 13, weight: .semibold))
+                }
+                .foregroundStyle(.white.opacity(0.9))
+                .padding(.horizontal, 14).padding(.vertical, 6)
+                .background(.white.opacity(0.2), in: Capsule())
+
+                HStack(spacing: 16) {
+                    vetHeroStat(value: "\(store.vetServices.count)", label: "услуги")
+                    Circle().fill(.white.opacity(0.4)).frame(width: 4, height: 4)
+                    vetHeroStat(value: "\(uniquePatientCount)", label: "пациенти")
+                    Circle().fill(.white.opacity(0.4)).frame(width: 4, height: 4)
+                    vetHeroStat(value: vetRating, label: "рейтинг")
+                }
+                .padding(.top, 4)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            .background(OPTheme.successSoft, in: Capsule())
+            .padding(.bottom, 52)
+        }
+    }
+
+    private func vetHeroStat(value: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value).font(.system(size: 18, weight: .bold, design: .rounded)).foregroundStyle(.white)
+            Text(label).font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.75))
+        }
+    }
+
+    // MARK: - Stats Grid
+
+    private var statsGrid: some View {
+        HStack(spacing: 10) {
+            settingsStatCard(value: String(format: "%.0f лв", completedRevenue), label: "Приходи", icon: "chart.line.uptrend.xyaxis", color: OPTheme.success)
+            settingsStatCard(value: "\(completedCount)", label: "Завършени", icon: "checkmark.circle.fill", color: OPTheme.mint)
+            settingsStatCard(value: "\(uniquePatientCount)", label: "Пациенти", icon: "pawprint.fill", color: OPTheme.sky)
+        }
+    }
+
+    private func settingsStatCard(value: String, label: String, icon: String, color: Color) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(color)
+                .frame(width: 32, height: 32)
+                .background(color.opacity(0.15), in: Circle())
+            Text(value)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(OPTheme.text)
+                .lineLimit(1).minimumScaleFactor(0.7)
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(OPTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
+        .padding(.vertical, 16)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(OPTheme.border.opacity(0.5), lineWidth: 1))
+        .shadow(color: .black.opacity(0.04), radius: 8, y: 4)
+    }
+
+    // MARK: - Quick Actions
+
+    private var settingsQuickActions: some View {
+        HStack(spacing: 10) {
+            settingsQuickAction(icon: "calendar.badge.plus", label: "Нов час", gradient: OPTheme.mintGradient) { showAddAppointment = true }
+            settingsQuickAction(icon: "plus.circle.fill", label: "Добави услуга", gradient: LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .leading, endPoint: .trailing)) { showAddService = true }
+            settingsQuickAction(icon: "calendar", label: "Календар", gradient: LinearGradient(colors: [OPTheme.accent, OPTheme.accentDark], startPoint: .leading, endPoint: .trailing)) {}
+        }
+    }
+
+    private func settingsQuickAction(icon: String, label: String, gradient: LinearGradient, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
+                Text(label)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(OPTheme.text)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+        }
+    }
+
+    // MARK: - Weekly Chart
+
+    private var weeklyChart: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Часове тази седмица")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(OPTheme.text)
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.right").font(.system(size: 11, weight: .bold)).foregroundStyle(OPTheme.success)
+                        Text("+12% спрямо миналата").font(.system(size: 12, weight: .semibold)).foregroundStyle(OPTheme.success)
+                    }
+                }
+                Spacer()
+                Text("\(Int(mockWeekAppts.reduce(0, +)))")
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .foregroundStyle(OPTheme.mint)
+            }
+
+            let maxVal = mockWeekAppts.max() ?? 1
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(0..<7, id: \.self) { i in
+                    VStack(spacing: 6) {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(i == 6
+                                ? LinearGradient(colors: [OPTheme.mint, Color(hex: "2D6A4F")], startPoint: .top, endPoint: .bottom)
+                                : LinearGradient(colors: [OPTheme.mint.opacity(0.3), OPTheme.mint.opacity(0.15)], startPoint: .top, endPoint: .bottom))
+                            .frame(height: max(8, CGFloat(mockWeekAppts[i] / maxVal) * 80))
+                        Text(mockWeekLabels[i])
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(i == 6 ? OPTheme.mint : OPTheme.textTertiary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 100)
+        }
+        .padding(16)
         .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.mint.opacity(0.2), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
     }
 
     // MARK: - Clinic Info
 
-    private var clinicInfoCard: some View {
+    private var clinicInfoSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "building.2.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(OPTheme.mint)
-                Text("Информация за клиниката")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
-            }
+            Text("Информация за клиниката").font(.system(size: 15, weight: .bold)).foregroundStyle(OPTheme.text)
 
-            VStack(spacing: 8) {
-                infoRow(icon: "mappin.circle.fill", label: "Адрес", value: "ул. Цар Борис III 120, София")
-                infoRow(icon: "phone.fill", label: "Телефон", value: "+359 88 123 4567")
-                infoRow(icon: "envelope.fill", label: "Имейл", value: store.ownerEmail.isEmpty ? "clinic@ohpuppy.bg" : store.ownerEmail)
+            VStack(spacing: 0) {
+                clinicDetailRow(icon: "building.2.fill", label: "Клиника", value: "Клиника Лапа", color: OPTheme.mint)
+                Divider().padding(.leading, 52)
+                clinicDetailRow(icon: "mappin.circle.fill", label: "Адрес", value: "ул. Цар Борис III 120, София", color: OPTheme.sky)
+                Divider().padding(.leading, 52)
+                clinicDetailRow(icon: "phone.fill", label: "Телефон", value: "+359 88 123 4567", color: OPTheme.accent)
+                Divider().padding(.leading, 52)
+                clinicDetailRow(icon: "envelope.fill", label: "Имейл", value: store.ownerEmail.isEmpty ? "clinic@ohpuppy.bg" : store.ownerEmail, color: OPTheme.rose)
+                Divider().padding(.leading, 52)
+                clinicDetailRow(icon: "clock.fill", label: "Работно време", value: "Пон-Пет 09-18", color: OPTheme.success)
             }
+            .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
         }
-        .padding(16)
-        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
     }
 
-    private func infoRow(icon: String, label: String, value: String) -> some View {
-        HStack(spacing: 10) {
+    private func clinicDetailRow(icon: String, label: String, value: String, color: Color) -> some View {
+        HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 13))
-                .foregroundStyle(OPTheme.textTertiary)
-                .frame(width: 20)
-            Text(label)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(OPTheme.textSecondary)
+                .font(.system(size: 14, weight: .semibold)).foregroundStyle(color)
+                .frame(width: 30, height: 30)
+                .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            Text(label).font(.system(size: 14, weight: .medium)).foregroundStyle(OPTheme.textSecondary)
             Spacer()
-            Text(value)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(OPTheme.text)
-                .lineLimit(1)
+            Text(value).font(.system(size: 14, weight: .semibold)).foregroundStyle(OPTheme.text).lineLimit(1)
         }
-    }
-
-    // MARK: - Working Hours
-
-    private var workingHoursCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "clock.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(OPTheme.accent)
-                Text("Работно време")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
-            }
-
-            VStack(spacing: 8) {
-                workingHoursRow(days: "Понеделник - Петък", hours: "09:00 - 18:00", isActive: true)
-                workingHoursRow(days: "Събота", hours: "10:00 - 14:00", isActive: true)
-                workingHoursRow(days: "Неделя", hours: "Почивен ден", isActive: false)
-            }
-        }
-        .padding(16)
-        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
-    }
-
-    private func workingHoursRow(days: String, hours: String, isActive: Bool) -> some View {
-        HStack {
-            Text(days)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(OPTheme.text)
-            Spacer()
-            Text(hours)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(isActive ? OPTheme.mint : OPTheme.textTertiary)
-        }
+        .padding(.horizontal, 14).padding(.vertical, 11)
     }
 
     // MARK: - Role Switcher
 
-    private var roleSwitchSection: some View {
+    private var roleSwitcherSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(OPTheme.sky)
-                Text("Смяна на роля")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
-            }
+            Text("Превключи роля").font(.system(size: 15, weight: .bold)).foregroundStyle(OPTheme.text)
 
             let availableRoles: [UserRole] = [.owner] + store.registeredRoles.sorted(by: { $0.rawValue < $1.rawValue })
-
-            Menu {
-                ForEach(availableRoles, id: \.self) { role in
-                    Button {
-                        withAnimation(OPTheme.quickSpring) { store.activeRole = role }
-                    } label: {
-                        Label(role.label, systemImage: role.icon)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(availableRoles, id: \.self) { role in
+                        let isActive = store.activeRole == role
+                        Button {
+                            withAnimation(OPTheme.quickSpring) { store.activeRole = role }
+                        } label: {
+                            VStack(spacing: 8) {
+                                Image(systemName: role.icon)
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(isActive ? .white : OPTheme.textSecondary)
+                                    .frame(width: 44, height: 44)
+                                    .background(isActive ? AnyShapeStyle(OPTheme.mintGradient) : AnyShapeStyle(OPTheme.surfaceSunken), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                Text(role.label)
+                                    .font(.system(size: 11, weight: isActive ? .bold : .medium))
+                                    .foregroundStyle(isActive ? OPTheme.mint : OPTheme.textSecondary)
+                            }
+                            .frame(width: 72)
+                        }
                     }
                 }
-            } label: {
-                HStack {
-                    Image(systemName: store.activeRole.icon)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(OPTheme.primary)
-                    Text(store.activeRole.label)
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(OPTheme.text)
-                    Spacer()
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(OPTheme.textTertiary)
-                }
-                .padding(14)
-                .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
         }
-        .padding(16)
-        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
     }
 
     // MARK: - Preferences
@@ -972,14 +1234,7 @@ struct VetSettingsView: View {
     private var preferencesSection: some View {
         @Bindable var store = store
         return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(OPTheme.textSecondary)
-                Text("Настройки")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
-            }
+            Text("Настройки").font(.system(size: 15, weight: .bold)).foregroundStyle(OPTheme.text)
 
             VStack(alignment: .leading, spacing: 6) {
                 Toggle(isOn: $store.vetAcceptsOnlineBooking) {
@@ -1003,18 +1258,19 @@ struct VetSettingsView: View {
                 }
             }
 
-            Toggle(isOn: $store.isDarkMode) {
-                HStack(spacing: 10) {
-                    Image(systemName: store.isDarkMode ? "moon.fill" : "sun.max.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(store.isDarkMode ? OPTheme.accent : OPTheme.warning)
-                        .frame(width: 20)
-                    Text("Тъмен режим")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(OPTheme.text)
+            Button { showDarkMode = true } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "moon.fill").font(.system(size: 14, weight: .semibold)).foregroundStyle(OPTheme.mint)
+                        .frame(width: 30, height: 30)
+                        .background(OPTheme.mint.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    Text("Тъмен режим").font(.system(size: 15, weight: .medium)).foregroundStyle(OPTheme.text)
+                    Spacer()
+                    Text(store.isDarkMode ? "Вкл." : "Изкл.").font(.system(size: 13, weight: .semibold)).foregroundStyle(OPTheme.textSecondary)
+                    Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(OPTheme.textTertiary)
                 }
+                .padding(.horizontal, 14).padding(.vertical, 12)
             }
-            .tint(OPTheme.mint)
+            .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .padding(16)
         .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -1024,20 +1280,15 @@ struct VetSettingsView: View {
     // MARK: - Logout
 
     private var logoutButton: some View {
-        Button {
-            store.signOut()
-        } label: {
+        Button { showLogoutAlert = true } label: {
             HStack(spacing: 8) {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("Изход")
-                    .font(.system(size: 16, weight: .bold))
+                Image(systemName: "rectangle.portrait.and.arrow.right").font(.system(size: 14))
+                Text("Изход").font(.system(size: 15, weight: .semibold))
             }
             .foregroundStyle(OPTheme.danger)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(OPTheme.dangerSoft, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.danger.opacity(0.2), lineWidth: 1))
+            .padding(.vertical, 14)
+            .background(OPTheme.dangerSoft.opacity(0.4), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
     }
 }

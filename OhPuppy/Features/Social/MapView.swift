@@ -24,6 +24,18 @@ struct MapWalkerPin: Identifiable {
     let photoURL: String?
 }
 
+struct MapVetPin: Identifiable {
+    let id: String
+    let name: String
+    let clinic: String
+    let rating: Double
+    let reviewCount: Int
+    let coordinate: CLLocationCoordinate2D
+    let services: [(name: String, price: Int, duration: String)]
+    let workingHours: String
+    let phone: String
+}
+
 struct MapView: View {
     @Environment(AppStore.self) private var store
     @State private var locationManager = LocationManager()
@@ -44,8 +56,10 @@ struct MapView: View {
     @AppStorage("inviteBannerDismissed") private var inviteBannerDismissed = false
     @State private var showInviteShare = false
     @State private var selectedWalker: MapWalkerPin?
+    @State private var selectedVet: MapVetPin?
+    @State private var showVetBooking = false
 
-    private let filters = ["Всички", "Кучета", "Разходчици", "Места", "Събития", "Изгубени"]
+    private let filters = ["Всички", "Кучета", "Разходчици", "Ветеринари", "Места", "Събития", "Изгубени"]
 
     private var mapDogs: [MapDogPin] {
         guard let center = locationManager.userLocation else {
@@ -70,6 +84,21 @@ struct MapView: View {
             MapWalkerPin(id: "w3", name: "Елена В.", rating: 4.5, pricePerWalk: 18, coordinate: CLLocationCoordinate2D(latitude: center.latitude + 0.001, longitude: center.longitude + 0.006), badge: .reliable, reviewCount: 15, walksCount: 28, photoURL: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&h=100&q=85"),
             MapWalkerPin(id: "w4", name: "Димитър С.", rating: 5.0, pricePerWalk: 30, coordinate: CLLocationCoordinate2D(latitude: center.latitude - 0.003, longitude: center.longitude - 0.004), badge: .expert, reviewCount: 62, walksCount: 115, photoURL: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=85"),
             MapWalkerPin(id: "w5", name: "Ива М.", rating: 4.2, pricePerWalk: 15, coordinate: CLLocationCoordinate2D(latitude: center.latitude + 0.005, longitude: center.longitude + 0.003), badge: .newcomer, reviewCount: 3, walksCount: 5, photoURL: nil),
+        ]
+    }
+
+    private var mapVets: [MapVetPin] {
+        guard let center = locationManager.userLocation else {
+            return generateVetPins(around: CLLocationCoordinate2D(latitude: 42.6977, longitude: 23.3219))
+        }
+        return generateVetPins(around: center)
+    }
+
+    private func generateVetPins(around center: CLLocationCoordinate2D) -> [MapVetPin] {
+        [
+            MapVetPin(id: "vet1", name: "Д-р Илиян Иванов", clinic: "Клиника Лапа", rating: 4.9, reviewCount: 127, coordinate: CLLocationCoordinate2D(latitude: center.latitude + 0.003, longitude: center.longitude + 0.004), services: [("Първичен преглед", 50, "30 мин"), ("Ваксинация", 45, "15 мин"), ("Кръвна картина", 65, "30 мин"), ("Почистване зъби", 120, "1 ч")], workingHours: "Пон-Пет 09-18, Съб 10-14", phone: "+359 88 123 4567"),
+            MapVetPin(id: "vet2", name: "Д-р Елена Колева", clinic: "СПА Pets", rating: 4.7, reviewCount: 84, coordinate: CLLocationCoordinate2D(latitude: center.latitude - 0.002, longitude: center.longitude - 0.003), services: [("Преглед", 45, "30 мин"), ("Ехография", 80, "45 мин"), ("Кастрация", 250, "2 ч")], workingHours: "Пон-Пет 08-17", phone: "+359 89 987 6543"),
+            MapVetPin(id: "vet3", name: "Д-р Петър Стоянов", clinic: "VetCare София", rating: 4.5, reviewCount: 52, coordinate: CLLocationCoordinate2D(latitude: center.latitude + 0.001, longitude: center.longitude - 0.005), services: [("Преглед", 40, "20 мин"), ("Ваксинация", 40, "15 мин"), ("Дерматология", 70, "40 мин")], workingHours: "Пон-Съб 09-19", phone: "+359 87 555 1234"),
         ]
     }
 
@@ -146,12 +175,17 @@ struct MapView: View {
                         .padding(.bottom, 8)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                if let walker = selectedWalker, selectedDog == nil {
+                if let vet = selectedVet, selectedDog == nil, selectedWalker == nil {
+                    vetCard(vet)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.horizontal, OPTheme.screenPadding)
+                        .padding(.bottom, 16)
+                } else if let walker = selectedWalker, selectedDog == nil, selectedVet == nil {
                     walkerCard(walker)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .padding(.horizontal, OPTheme.screenPadding)
                         .padding(.bottom, 16)
-                } else if selectedDog != nil, selectedWalker == nil {
+                } else if selectedDog != nil, selectedWalker == nil, selectedVet == nil {
                     nearbyDogCard
                         .padding(.horizontal, OPTheme.screenPadding)
                         .padding(.bottom, 16)
@@ -160,6 +194,7 @@ struct MapView: View {
             }
             .animation(OPTheme.quickSpring, value: selectedDog?.id)
             .animation(OPTheme.quickSpring, value: selectedWalker?.id)
+            .animation(OPTheme.quickSpring, value: selectedVet?.id)
             .animation(OPTheme.quickSpring, value: inviteBannerDismissed)
         }
         .navigationBarHidden(true)
@@ -208,6 +243,7 @@ struct MapView: View {
                         withAnimation(OPTheme.quickSpring) {
                             selectedDog = dog
                             selectedWalker = nil
+                            selectedVet = nil
                         }
                     } label: {
                         mapPinLabel(dog: dog)
@@ -222,9 +258,26 @@ struct MapView: View {
                             withAnimation(OPTheme.quickSpring) {
                                 selectedWalker = walker
                                 selectedDog = nil
+                                selectedVet = nil
                             }
                         } label: {
                             walkerPinView(walker)
+                        }
+                    }
+                }
+            }
+
+            if selectedFilter == "Всички" || selectedFilter == "Ветеринари" {
+                ForEach(mapVets) { vet in
+                    Annotation(vet.clinic, coordinate: vet.coordinate) {
+                        Button {
+                            withAnimation(OPTheme.quickSpring) {
+                                selectedVet = vet
+                                selectedDog = nil
+                                selectedWalker = nil
+                            }
+                        } label: {
+                            vetPinView(vet)
                         }
                     }
                 }
@@ -658,6 +711,157 @@ struct MapView: View {
         .padding(14)
         .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: OPTheme.cornerRadius, style: .continuous))
         .shadow(color: .black.opacity(0.1), radius: 16, y: 6)
+    }
+
+    // MARK: - Vet Pin
+
+    private func vetPinView(_ vet: MapVetPin) -> some View {
+        let isSelected = selectedVet?.id == vet.id
+        return VStack(spacing: 0) {
+            ZStack {
+                Circle()
+                    .fill(.white)
+                    .frame(width: isSelected ? 52 : 44, height: isSelected ? 52 : 44)
+                    .shadow(color: OPTheme.mint.opacity(0.3), radius: 6, y: 3)
+                Image(systemName: "cross.circle.fill")
+                    .font(.system(size: isSelected ? 30 : 24, weight: .semibold))
+                    .foregroundStyle(OPTheme.mintGradient)
+            }
+            Triangle()
+                .fill(OPTheme.mint)
+                .frame(width: 12, height: 8)
+                .offset(y: -2)
+        }
+        .scaleEffect(isSelected ? 1.1 : 1.0)
+        .animation(OPTheme.quickSpring, value: isSelected)
+    }
+
+    // MARK: - Vet Card
+
+    private func vetCard(_ vet: MapVetPin) -> some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 14) {
+                Image(systemName: "stethoscope")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 52, height: 52)
+                    .background(OPTheme.mintGradient, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(vet.name)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(OPTheme.text)
+                    Text(vet.clinic)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(OPTheme.textSecondary)
+                    HStack(spacing: 8) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(OPTheme.accent)
+                            Text(String(format: "%.1f", vet.rating)).font(.system(size: 12, weight: .bold)).foregroundStyle(OPTheme.text)
+                            Text("(\(vet.reviewCount))").font(.system(size: 11, weight: .medium)).foregroundStyle(OPTheme.textTertiary)
+                        }
+                        HStack(spacing: 3) {
+                            Image(systemName: "clock").font(.system(size: 10)).foregroundStyle(OPTheme.mint)
+                            Text(vet.workingHours).font(.system(size: 10, weight: .medium)).foregroundStyle(OPTheme.textSecondary).lineLimit(1)
+                        }
+                    }
+                }
+                Spacer()
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(vet.services, id: \.name) { service in
+                        VStack(spacing: 4) {
+                            Text(service.name)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(OPTheme.text)
+                                .lineLimit(1)
+                            Text("\(service.price) лв")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(OPTheme.mint)
+                            Text(service.duration)
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(OPTheme.textTertiary)
+                        }
+                        .frame(width: 90)
+                        .padding(.vertical, 8)
+                        .background(OPTheme.mintSoft.opacity(0.3), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(OPTheme.mint.opacity(0.2), lineWidth: 1))
+                    }
+                }
+            }
+
+            vetAvailabilityRow
+
+            HStack(spacing: 10) {
+                Button {
+                    if let url = URL(string: "tel:\(vet.phone.replacingOccurrences(of: " ", with: ""))") {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "phone.fill").font(.system(size: 13, weight: .semibold))
+                        Text("Обади се").font(.system(size: 14, weight: .bold))
+                    }
+                    .foregroundStyle(OPTheme.mint)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(OPTheme.mintSoft.opacity(0.5), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(OPTheme.mint.opacity(0.3), lineWidth: 1))
+                }
+
+                Button {
+                    // Book appointment action
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar.badge.plus").font(.system(size: 13, weight: .semibold))
+                        Text("Запази час").font(.system(size: 14, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(OPTheme.mintGradient, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+            }
+        }
+        .padding(14)
+        .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.mint.opacity(0.3), lineWidth: 1))
+        .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
+    }
+
+    private var vetAvailabilityRow: some View {
+        let days = ["Пон", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"]
+        let today = (Calendar.current.component(.weekday, from: Date()) + 5) % 7
+        let mockSlots = [3, 2, 4, 1, 3, 2, 0]
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("Свободни часове")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(OPTheme.textSecondary)
+            HStack(spacing: 4) {
+                ForEach(0..<7, id: \.self) { i in
+                    let isToday = i == today
+                    let slots = mockSlots[i]
+                    VStack(spacing: 3) {
+                        Text(days[i])
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(isToday ? OPTheme.mint : OPTheme.textTertiary)
+                        Text(slots > 0 ? "\(slots)" : "—")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(slots > 0 ? (isToday ? .white : OPTheme.mint) : OPTheme.textTertiary)
+                            .frame(width: 28, height: 28)
+                            .background(
+                                isToday && slots > 0 ? AnyShapeStyle(OPTheme.mintGradient) :
+                                slots > 0 ? AnyShapeStyle(OPTheme.mint.opacity(0.12)) :
+                                AnyShapeStyle(OPTheme.surfaceSunken),
+                                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            )
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
     }
 }
 

@@ -43,6 +43,12 @@ struct WalkerTabView: View {
 struct WalkerHomeView: View {
     @Environment(AppStore.self) private var store
 
+    private let walkerGradient = LinearGradient(
+        colors: [OPTheme.sky, Color(hex: "1D3557")],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
     private var todayWalks: [WalkRequest] {
         let cal = Calendar.current
         return store.walkRequests.filter { req in
@@ -69,52 +75,109 @@ struct WalkerHomeView: View {
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 20) {
-                DashboardRoleSwitcher()
-                headerCard
-                activeWalkCard
-                quickStatsRow
-                pointsProgressCard
-                badgeShelf
-                recentReviewsSection
+            VStack(spacing: 0) {
+                heroSection
+                VStack(spacing: 20) {
+                    activeWalkCard
+                    statsHighlight
+                    pointsBadgeProgress
+                    badgeShelf
+                    recentReviewsSection
+                }
+                .padding(.horizontal, OPTheme.screenPadding)
+                .padding(.top, 24)
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, OPTheme.screenPadding)
-            .padding(.bottom, 40)
         }
         .background(OPTheme.bg)
+        .ignoresSafeArea(edges: .top)
         .navigationBarHidden(true)
     }
 
-    // MARK: - Header
+    // MARK: - Gradient Hero
 
-    private var headerCard: some View {
-        HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: 64, height: 64)
-                .overlay {
-                    Image(systemName: "figure.walk")
-                        .font(.system(size: 26, weight: .semibold))
+    private var heroSection: some View {
+        ZStack {
+            walkerGradient
+            // Floating decorative icons
+            floatingIcons
+            // Content
+            VStack(spacing: 16) {
+                Spacer().frame(height: 54)
+                DashboardRoleSwitcher()
+                    .padding(.horizontal, OPTheme.screenPadding)
+
+                VStack(spacing: 6) {
+                    Text("Здравей, \(store.ownerName.components(separatedBy: " ").first ?? store.ownerName)!")
+                        .font(.system(size: 26, weight: .bold))
                         .foregroundStyle(.white)
+
+                    // Badge pill
+                    HStack(spacing: 6) {
+                        Image(systemName: store.currentWalkerBadge.icon)
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(store.currentWalkerBadge.label)
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(.white.opacity(0.2), in: Capsule())
                 }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(store.ownerName)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(OPTheme.text)
-                HStack(spacing: 6) {
-                    Image(systemName: store.currentWalkerBadge.icon)
-                        .font(.system(size: 12))
-                        .foregroundStyle(OPTheme.accent)
-                    Text(store.currentWalkerBadge.label)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(OPTheme.accent)
+
+                // Quick stat pills
+                HStack(spacing: 10) {
+                    heroPill(icon: "banknote", value: String(format: "%.0f лв", todayEarnings), label: "днес")
+                    heroPill(icon: "pawprint.fill", value: "\(todayWalkCount)", label: "разходки")
                 }
+                .padding(.horizontal, OPTheme.screenPadding)
+                .padding(.bottom, 20)
             }
-            Spacer()
         }
-        .padding(16)
-        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.sky.opacity(0.3), lineWidth: 1))
+        .frame(height: 220)
+        .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 32, bottomTrailingRadius: 32))
+    }
+
+    private var floatingIcons: some View {
+        ZStack {
+            Image(systemName: "figure.walk")
+                .font(.system(size: 60, weight: .ultraLight))
+                .foregroundStyle(.white.opacity(0.06))
+                .offset(x: -120, y: -10)
+                .rotationEffect(.degrees(-15))
+            Image(systemName: "pawprint.fill")
+                .font(.system(size: 40, weight: .ultraLight))
+                .foregroundStyle(.white.opacity(0.07))
+                .offset(x: 130, y: -30)
+                .rotationEffect(.degrees(20))
+            Image(systemName: "star.fill")
+                .font(.system(size: 28, weight: .ultraLight))
+                .foregroundStyle(.white.opacity(0.05))
+                .offset(x: 100, y: 50)
+                .rotationEffect(.degrees(10))
+            Image(systemName: "pawprint")
+                .font(.system(size: 24, weight: .ultraLight))
+                .foregroundStyle(.white.opacity(0.05))
+                .offset(x: -90, y: 60)
+        }
+    }
+
+    private func heroPill(icon: String, value: String, label: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.8))
+            Text(value)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white)
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.7))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial.opacity(0.4), in: Capsule())
+        .overlay(Capsule().stroke(.white.opacity(0.15), lineWidth: 1))
     }
 
     // MARK: - Active Walk
@@ -127,6 +190,7 @@ struct WalkerHomeView: View {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(.white)
+                        .symbolEffect(.pulse)
                     Text("АКТИВНА РАЗХОДКА")
                         .font(.system(size: 12, weight: .heavy))
                         .foregroundStyle(.white)
@@ -162,74 +226,119 @@ struct WalkerHomeView: View {
                 }
             }
             .padding(18)
-            .background(
-                LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .topLeading, endPoint: .bottomTrailing),
-                in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-            )
+            .background(walkerGradient, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             .shadow(color: OPTheme.sky.opacity(0.3), radius: 12, y: 6)
         }
     }
 
-    // MARK: - Quick Stats
+    // MARK: - Stats Highlight (2 cards side by side)
 
-    private var quickStatsRow: some View {
-        HStack(spacing: 10) {
-            walkerStat(value: "\(todayWalkCount)", label: "Разходки днес", color: OPTheme.sky)
-            walkerStat(value: String(format: "%.0f лв", todayEarnings), label: "Печалба днес", color: OPTheme.mint)
-            walkerStat(value: "\(store.walkerPoints)", label: "Точки", color: OPTheme.accent)
+    private var statsHighlight: some View {
+        HStack(spacing: 12) {
+            statsCard(
+                icon: "banknote.fill",
+                iconColors: [OPTheme.mint, Color(hex: "40916C")],
+                value: String(format: "%.0f лв", store.walkerTotalEarned),
+                label: "Общо приходи"
+            )
+            statsCard(
+                icon: "figure.walk",
+                iconColors: [OPTheme.sky, Color(hex: "1D3557")],
+                value: "\(store.walkerWalksCount)",
+                label: "Общо разходки"
+            )
         }
     }
 
-    private func walkerStat(value: String, label: String, color: Color) -> some View {
-        VStack(spacing: 4) {
+    private func statsCard(icon: String, iconColors: [Color], value: String, label: String) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(
+                    LinearGradient(colors: iconColors, startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .frame(width: 44, height: 44)
+                .background(iconColors[0].opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             Text(value)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(color)
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundStyle(OPTheme.text)
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(OPTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+        .padding(.vertical, 18)
+        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
     }
 
     // MARK: - Points + Badge Progress
 
-    private var pointsProgressCard: some View {
-        VStack(spacing: 12) {
-            Text("\(store.walkerPoints)")
-                .font(.system(size: 44, weight: .heavy, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .leading, endPoint: .trailing)
-                )
-            Text("точки")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(OPTheme.textSecondary)
+    private var pointsBadgeProgress: some View {
+        VStack(spacing: 16) {
+            // Big points number
+            VStack(spacing: 2) {
+                Text("\(store.walkerPoints)")
+                    .font(.system(size: 52, weight: .heavy, design: .rounded))
+                    .foregroundStyle(walkerGradient)
+                Text("точки")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(OPTheme.textSecondary)
+                    .textCase(.uppercase)
+                    .tracking(1)
+            }
 
+            // Progress bar to next badge
             if let next = store.nextWalkerBadge {
-                GeometryReader { geo in
-                    let currentMin = store.currentWalkerBadge.minPoints
-                    let nextMin = next.minPoints
-                    let range = max(1, nextMin - currentMin)
-                    let progress = Double(store.walkerPoints - currentMin) / Double(range)
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(OPTheme.surfaceSunken).frame(height: 10)
-                        Capsule()
-                            .fill(LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .leading, endPoint: .trailing))
-                            .frame(width: max(10, geo.size.width * progress), height: 10)
+                VStack(spacing: 8) {
+                    GeometryReader { geo in
+                        let currentMin = store.currentWalkerBadge.minPoints
+                        let nextMin = next.minPoints
+                        let range = max(1, nextMin - currentMin)
+                        let progress = min(1.0, Double(store.walkerPoints - currentMin) / Double(range))
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(OPTheme.surfaceSunken).frame(height: 12)
+                            Capsule()
+                                .fill(walkerGradient)
+                                .frame(width: max(12, geo.size.width * progress), height: 12)
+                        }
                     }
-                }
-                .frame(height: 10)
+                    .frame(height: 12)
 
-                Text("Още \(next.minPoints - store.walkerPoints) точки до \(next.label)")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(OPTheme.textTertiary)
+                    HStack {
+                        HStack(spacing: 4) {
+                            Image(systemName: store.currentWalkerBadge.icon)
+                                .font(.system(size: 11))
+                            Text(store.currentWalkerBadge.label)
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(OPTheme.sky)
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Text(next.label)
+                                .font(.system(size: 11, weight: .semibold))
+                            Image(systemName: next.icon)
+                                .font(.system(size: 11))
+                        }
+                        .foregroundStyle(OPTheme.textTertiary)
+                    }
+
+                    Text("Още \(next.minPoints - store.walkerPoints) точки до \(next.label)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(OPTheme.textTertiary)
+                }
             } else {
-                Text("Максимално ниво достигнато!")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(OPTheme.accent)
+                HStack(spacing: 6) {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(OPTheme.accent)
+                    Text("Максимално ниво достигнато!")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(OPTheme.accent)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(OPTheme.accentSoft, in: Capsule())
             }
         }
         .padding(20)
@@ -240,16 +349,22 @@ struct WalkerHomeView: View {
     // MARK: - Badge Shelf
 
     private var badgeShelf: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             OPSectionHeader(title: "Нива")
             HStack(spacing: 0) {
                 ForEach(WalkerBadge.allCases, id: \.self) { badge in
                     let isEarned = store.walkerPoints >= badge.minPoints
+                    let isCurrent = badge == store.currentWalkerBadge
                     VStack(spacing: 6) {
                         ZStack {
                             Circle()
                                 .fill(isEarned ? OPTheme.sky.opacity(0.15) : OPTheme.surfaceSunken)
-                                .frame(width: 44, height: 44)
+                                .frame(width: 48, height: 48)
+                            if isCurrent {
+                                Circle()
+                                    .stroke(walkerGradient, lineWidth: 2.5)
+                                    .frame(width: 48, height: 48)
+                            }
                             Image(systemName: badge.icon)
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(isEarned ? OPTheme.sky : OPTheme.textTertiary)
@@ -257,8 +372,10 @@ struct WalkerHomeView: View {
                         Text(badge.label)
                             .font(.system(size: 9, weight: isEarned ? .bold : .medium))
                             .foregroundStyle(isEarned ? OPTheme.text : OPTheme.textTertiary)
+                            .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity)
+                    .opacity(isEarned ? 1 : 0.5)
                 }
             }
         }
@@ -270,50 +387,68 @@ struct WalkerHomeView: View {
     // MARK: - Recent Reviews
 
     private var recentReviewsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             OPSectionHeader(title: "Последни ревюта")
             let topReviews = Array(store.walkerReviews.sorted { $0.date > $1.date }.prefix(3))
             if topReviews.isEmpty {
-                HStack(spacing: 10) {
+                VStack(spacing: 10) {
                     Image(systemName: "text.bubble")
-                        .font(.system(size: 20))
+                        .font(.system(size: 28))
                         .foregroundStyle(OPTheme.textTertiary)
+                        .symbolEffect(.wiggle.byLayer)
                     Text("Все още няма ревюта")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(OPTheme.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
-                .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(.vertical, 28)
+                .background(OPTheme.surfaceSunken, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             } else {
                 ForEach(topReviews) { review in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text(review.clientName)
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(OPTheme.text)
-                            Text("за \(review.dogName)")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(OPTheme.textTertiary)
-                            Spacer()
-                            HStack(spacing: 2) {
+                    HStack(spacing: 12) {
+                        // Avatar circle with initials
+                        ZStack {
+                            Circle()
+                                .fill(walkerGradient)
+                                .frame(width: 44, height: 44)
+                            Text(String(review.clientName.prefix(1)).uppercased())
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(review.clientName)
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(OPTheme.text)
+                                Text("за \(review.dogName)")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(OPTheme.textTertiary)
+                                Spacer()
+                            }
+                            // Star ratings
+                            HStack(spacing: 3) {
                                 ForEach(1...5, id: \.self) { i in
                                     Image(systemName: i <= review.rating ? "star.fill" : "star")
-                                        .font(.system(size: 10))
+                                        .font(.system(size: 11))
                                         .foregroundStyle(i <= review.rating ? OPTheme.warning : OPTheme.textTertiary)
                                 }
+                                Spacer()
+                                Text(review.date.formatted(.dateTime.day().month(.abbreviated)))
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(OPTheme.textTertiary)
+                            }
+                            if !review.comment.isEmpty {
+                                Text(review.comment)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(OPTheme.textSecondary)
+                                    .lineLimit(2)
                             }
                         }
-                        Text(review.comment)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(OPTheme.textSecondary)
-                        Text(review.date.formatted(.dateTime.day().month(.abbreviated)))
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(OPTheme.textTertiary)
                     }
-                    .padding(12)
-                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+                    .padding(14)
+                    .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
                 }
             }
         }
@@ -817,6 +952,13 @@ struct WalkerEarningsView: View {
 struct WalkerSettingsView: View {
     @Environment(AppStore.self) private var store
     @State private var showLogoutAlert = false
+    @State private var showDarkModeSheet = false
+
+    private let walkerGradient = LinearGradient(
+        colors: [OPTheme.sky, Color(hex: "1D3557")],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
 
     private var averageRating: Double {
         guard !store.walkerReviews.isEmpty else { return 0 }
@@ -828,77 +970,193 @@ struct WalkerSettingsView: View {
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 20) {
-                profileHeader
-                availabilityGrid
-                servicesSection
-                priceSection
-                onlineRequestsToggle
-                roleSwitcher
-                darkModeToggle
-                logoutButton
+            VStack(spacing: 0) {
+                settingsHero
+                VStack(spacing: 20) {
+                    statsGrid
+                        .padding(.top, -36)
+                    quickActions
+                    availabilityGrid
+                    servicesAndPrice
+                    onlineRequestsToggle
+                    roleSwitcher
+                    darkModeButton
+                    logoutButton
+                }
+                .padding(.horizontal, OPTheme.screenPadding)
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, OPTheme.screenPadding)
-            .padding(.bottom, 40)
         }
         .background(OPTheme.bg)
-        .navigationTitle("Профил")
-        .navigationBarTitleDisplayMode(.inline)
+        .ignoresSafeArea(edges: .top)
+        .navigationBarHidden(true)
         .alert("Изход от профила", isPresented: $showLogoutAlert) {
             Button("Отмени", role: .cancel) {}
             Button("Излез", role: .destructive) { store.signOut() }
         } message: {
             Text("Сигурни ли сте, че искате да излезете?")
         }
+        .sheet(isPresented: $showDarkModeSheet) {
+            DarkModeSheet()
+        }
     }
 
-    // MARK: - Profile Header
+    // MARK: - Hero Header
 
-    private var profileHeader: some View {
-        VStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(LinearGradient(colors: [OPTheme.sky, Color(hex: "1D3557")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: 80, height: 80)
-                .overlay {
+    private var settingsHero: some View {
+        ZStack {
+            walkerGradient
+            // Floating decorative icons
+            ZStack {
+                Image(systemName: "person.fill")
+                    .font(.system(size: 80, weight: .ultraLight))
+                    .foregroundStyle(.white.opacity(0.04))
+                    .offset(x: -130, y: 20)
+                Image(systemName: "figure.walk")
+                    .font(.system(size: 50, weight: .ultraLight))
+                    .foregroundStyle(.white.opacity(0.05))
+                    .offset(x: 140, y: -20)
+                    .rotationEffect(.degrees(15))
+                Image(systemName: "pawprint.fill")
+                    .font(.system(size: 30, weight: .ultraLight))
+                    .foregroundStyle(.white.opacity(0.06))
+                    .offset(x: 100, y: 60)
+                Image(systemName: "star.fill")
+                    .font(.system(size: 22, weight: .ultraLight))
+                    .foregroundStyle(.white.opacity(0.05))
+                    .offset(x: -100, y: 70)
+            }
+
+            VStack(spacing: 14) {
+                Spacer().frame(height: 56)
+
+                // White rounded person icon
+                ZStack {
+                    Circle()
+                        .fill(.white.opacity(0.15))
+                        .frame(width: 84, height: 84)
+                    Circle()
+                        .fill(.white.opacity(0.2))
+                        .frame(width: 72, height: 72)
                     Image(systemName: "person.fill")
-                        .font(.system(size: 32, weight: .semibold))
+                        .font(.system(size: 30, weight: .semibold))
                         .foregroundStyle(.white)
                 }
 
-            Text(store.ownerName)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(OPTheme.text)
+                // Name
+                Text(store.ownerName)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.white)
 
-            HStack(spacing: 16) {
-                HStack(spacing: 4) {
-                    Image(systemName: store.currentWalkerBadge.icon)
-                        .font(.system(size: 12))
-                        .foregroundStyle(OPTheme.accent)
-                    Text(store.currentWalkerBadge.label)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(OPTheme.accent)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(OPTheme.accentSoft, in: Capsule())
+                // Badge + rating pills
+                HStack(spacing: 10) {
+                    HStack(spacing: 5) {
+                        Image(systemName: store.currentWalkerBadge.icon)
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(store.currentWalkerBadge.label)
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.white.opacity(0.2), in: Capsule())
 
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(OPTheme.warning)
-                    Text(String(format: "%.1f", averageRating))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(OPTheme.text)
+                    HStack(spacing: 5) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(String(format: "%.1f", averageRating))
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.white.opacity(0.2), in: Capsule())
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(OPTheme.warningSoft, in: Capsule())
+
+                // Stats row in hero
+                HStack(spacing: 0) {
+                    heroStat(value: "\(store.walkerWalksCount)", label: "Разходки")
+                    Rectangle().fill(.white.opacity(0.2)).frame(width: 1, height: 28)
+                    heroStat(value: "\(store.walkerPoints)", label: "Точки")
+                    Rectangle().fill(.white.opacity(0.2)).frame(width: 1, height: 28)
+                    heroStat(value: String(format: "%.0f лв", store.walkerTotalEarned), label: "Приходи")
+                }
+                .padding(.vertical, 8)
+                .padding(.bottom, 8)
             }
         }
+        .frame(height: 280)
+        .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 32, bottomTrailingRadius: 32))
+    }
+
+    private func heroStat(value: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.white.opacity(0.7))
+        }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+    }
+
+    // MARK: - Stats Grid (overlapping hero)
+
+    private var statsGrid: some View {
+        HStack(spacing: 10) {
+            settingsStatCard(icon: "figure.walk", value: "\(store.walkerWalksCount)", label: "Разходки", color: OPTheme.sky)
+            settingsStatCard(icon: "trophy.fill", value: "\(store.walkerPoints)", label: "Точки", color: OPTheme.accent)
+            settingsStatCard(icon: "banknote.fill", value: String(format: "%.0f лв", store.walkerTotalEarned), label: "Приходи", color: OPTheme.mint)
+        }
+    }
+
+    private func settingsStatCard(icon: String, value: String, label: String, color: Color) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(color)
+            Text(value)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(OPTheme.text)
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(OPTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+        .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
+    }
+
+    // MARK: - Quick Actions
+
+    private var quickActions: some View {
+        HStack(spacing: 10) {
+            quickActionButton(icon: "tray.fill", label: "Заявки", colors: [OPTheme.sky, Color(hex: "1D3557")])
+            quickActionButton(icon: "banknote.fill", label: "Приходи", colors: [OPTheme.mint, Color(hex: "40916C")])
+            quickActionButton(icon: "map.fill", label: "Карта", colors: [OPTheme.accent, OPTheme.accentDark])
+        }
+    }
+
+    private func quickActionButton(icon: String, label: String, colors: [Color]) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(
+                    LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .frame(width: 44, height: 44)
+                .background(colors[0].opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            Text(label)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(OPTheme.text)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
     }
 
     // MARK: - Availability Grid
@@ -929,14 +1187,14 @@ struct WalkerSettingsView: View {
                             .frame(width: 50, alignment: .leading)
                         ForEach(0..<7, id: \.self) { dayIndex in
                             let isAvailable = mockAvailability(slot: slot, day: dayIndex)
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(isAvailable ? OPTheme.mint.opacity(0.25) : OPTheme.surfaceSunken)
-                                .frame(maxWidth: .infinity, minHeight: 28)
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(isAvailable ? OPTheme.sky.opacity(0.18) : OPTheme.surfaceSunken)
+                                .frame(maxWidth: .infinity, minHeight: 30)
                                 .overlay {
                                     if isAvailable {
                                         Image(systemName: "checkmark")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .foregroundStyle(OPTheme.mint)
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundStyle(OPTheme.sky)
                                     }
                                 }
                         }
@@ -950,117 +1208,73 @@ struct WalkerSettingsView: View {
     }
 
     private func mockAvailability(slot: String, day: Int) -> Bool {
-        // Mock schedule: weekdays mornings/evenings, weekends all day
-        if day >= 5 { return true } // weekends
+        if day >= 5 { return true }
         return slot == "Сутрин" || slot == "Вечер"
     }
 
-    // MARK: - Services
+    // MARK: - Services + Price (compact)
 
-    private var servicesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            OPSectionHeader(title: "Предлагани услуги")
+    private var servicesAndPrice: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            OPSectionHeader(title: "Услуги и цена")
 
-            ForEach(WalkerApplication.ServiceType.allCases, id: \.self) { service in
-                let isOffered = store.walkerApplication?.services.contains(service) ?? (service == .walking)
-                HStack(spacing: 12) {
-                    Image(systemName: service.icon)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(isOffered ? OPTheme.mint : OPTheme.textTertiary)
-                        .frame(width: 34, height: 34)
-                        .background(
-                            isOffered ? OPTheme.mintSoft : OPTheme.surfaceSunken,
-                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        )
-
-                    Text(service.label)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(isOffered ? OPTheme.text : OPTheme.textTertiary)
-
-                    Spacer()
-
-                    Image(systemName: isOffered ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 18))
-                        .foregroundStyle(isOffered ? OPTheme.mint : OPTheme.textTertiary)
+            // Services row
+            HStack(spacing: 8) {
+                ForEach(WalkerApplication.ServiceType.allCases, id: \.self) { service in
+                    let isOffered = store.walkerApplication?.services.contains(service) ?? (service == .walking)
+                    HStack(spacing: 6) {
+                        Image(systemName: service.icon)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(isOffered ? OPTheme.sky : OPTheme.textTertiary)
+                        Text(service.label)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(isOffered ? OPTheme.text : OPTheme.textTertiary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(
+                        isOffered ? OPTheme.sky.opacity(0.1) : OPTheme.surfaceSunken,
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
+                    .overlay {
+                        if isOffered {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(OPTheme.sky.opacity(0.3), lineWidth: 1)
+                        }
+                    }
                 }
-                .padding(12)
-                .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
-            }
-        }
-    }
-
-    // MARK: - Price
-
-    private var priceSection: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "banknote.fill")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(OPTheme.mint)
-                .frame(width: 40, height: 40)
-                .background(OPTheme.mintSoft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Цена за разходка")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(OPTheme.text)
-                Text("30 минути")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(OPTheme.textSecondary)
+                Spacer()
             }
 
-            Spacer()
+            // Price row
+            Divider()
 
-            Text(String(format: "%.0f лв", store.walkerApplication?.pricePerWalk ?? 25.0))
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(OPTheme.mint)
-        }
-        .padding(14)
-        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
-    }
-
-    // MARK: - Role Switcher
-
-    private var roleSwitcher: some View {
-        let availableRoles: [UserRole] = [.owner] + store.registeredRoles.sorted(by: { $0.rawValue < $1.rawValue })
-        return Menu {
-            ForEach(availableRoles, id: \.self) { role in
-                Button {
-                    withAnimation(OPTheme.quickSpring) { store.activeRole = role }
-                } label: {
-                    Label(role.label, systemImage: role.icon)
-                }
-            }
-        } label: {
             HStack(spacing: 12) {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(OPTheme.primary)
+                Image(systemName: "banknote.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
                     .frame(width: 36, height: 36)
-                    .background(OPTheme.primarySoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(walkerGradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
-                Text("Смени роля")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(OPTheme.text)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Цена за разходка")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(OPTheme.text)
+                    Text("30 минути")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(OPTheme.textTertiary)
+                }
 
                 Spacer()
 
-                HStack(spacing: 4) {
-                    Image(systemName: store.activeRole.icon)
-                        .font(.system(size: 11, weight: .bold))
-                    Text(store.activeRole.label)
-                        .font(.system(size: 12, weight: .bold))
-                }
-                .foregroundStyle(OPTheme.primary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(OPTheme.primarySoft, in: Capsule())
+                Text(String(format: "%.0f лв", store.walkerApplication?.pricePerWalk ?? 25.0))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(OPTheme.sky)
             }
-            .padding(14)
-            .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
         }
+        .padding(16)
+        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
     }
 
     // MARK: - Online Requests Toggle
@@ -1071,10 +1285,10 @@ struct WalkerSettingsView: View {
             HStack(spacing: 12) {
                 Image(systemName: "tray.full.fill")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(store.walkerAcceptsOnlineRequests ? OPTheme.mint : OPTheme.textTertiary)
+                    .foregroundStyle(store.walkerAcceptsOnlineRequests ? OPTheme.sky : OPTheme.textTertiary)
                     .frame(width: 36, height: 36)
                     .background(
-                        (store.walkerAcceptsOnlineRequests ? OPTheme.mintSoft : OPTheme.surfaceSunken),
+                        (store.walkerAcceptsOnlineRequests ? OPTheme.skySoft : OPTheme.surfaceSunken),
                         in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                     )
 
@@ -1086,7 +1300,7 @@ struct WalkerSettingsView: View {
 
                 Toggle("", isOn: $store.walkerAcceptsOnlineRequests)
                     .labelsHidden()
-                    .tint(OPTheme.mint)
+                    .tint(OPTheme.sky)
             }
 
             if !store.walkerAcceptsOnlineRequests {
@@ -1101,33 +1315,78 @@ struct WalkerSettingsView: View {
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
     }
 
+    // MARK: - Role Switcher (horizontal)
+
+    private var roleSwitcher: some View {
+        let availableRoles: [UserRole] = [.owner] + store.registeredRoles.sorted(by: { $0.rawValue < $1.rawValue })
+        return VStack(alignment: .leading, spacing: 12) {
+            OPSectionHeader(title: "Смени роля")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(availableRoles, id: \.self) { role in
+                        let isActive = role == store.activeRole
+                        Button {
+                            withAnimation(OPTheme.quickSpring) { store.activeRole = role }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: role.icon)
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text(role.label)
+                                    .font(.system(size: 13, weight: .bold))
+                            }
+                            .foregroundStyle(isActive ? .white : OPTheme.text)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(
+                                isActive ? AnyShapeStyle(walkerGradient) : AnyShapeStyle(OPTheme.surfaceSunken),
+                                in: Capsule()
+                            )
+                            .overlay {
+                                if !isActive {
+                                    Capsule().stroke(OPTheme.border, lineWidth: 1)
+                                }
+                            }
+                        }
+                        .sensoryFeedback(.selection, trigger: isActive)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
+    }
+
     // MARK: - Dark Mode
 
-    private var darkModeToggle: some View {
-        @Bindable var store = store
-        return HStack(spacing: 12) {
-            Image(systemName: store.isDarkMode ? "moon.fill" : "sun.max.fill")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(store.isDarkMode ? OPTheme.sky : OPTheme.accent)
-                .frame(width: 36, height: 36)
-                .background(
-                    (store.isDarkMode ? OPTheme.skySoft : OPTheme.accentSoft),
-                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                )
+    private var darkModeButton: some View {
+        Button {
+            showDarkModeSheet = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: store.isDarkMode ? "moon.fill" : "sun.max.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(store.isDarkMode ? OPTheme.sky : OPTheme.accent)
+                    .frame(width: 36, height: 36)
+                    .background(
+                        (store.isDarkMode ? OPTheme.skySoft : OPTheme.accentSoft),
+                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    )
 
-            Text("Тъмен режим")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(OPTheme.text)
+                Text("Тъмен режим")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(OPTheme.text)
 
-            Spacer()
+                Spacer()
 
-            Toggle("", isOn: $store.isDarkMode)
-                .labelsHidden()
-                .tint(OPTheme.mint)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(OPTheme.textTertiary)
+            }
+            .padding(14)
+            .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
         }
-        .padding(14)
-        .background(OPTheme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(OPTheme.border, lineWidth: 1))
     }
 
     // MARK: - Logout
